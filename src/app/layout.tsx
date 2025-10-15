@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
-import { cn } from '@/lib/utils'
 
 // Font configurations for the casino platform
 const inter = Inter({
@@ -96,12 +95,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="it"
-      className={cn(
-        'casino-theme',
-        inter.variable,
-        playfair.variable,
-        cormorant.variable
-      )}
+      className={`casino-theme ${inter.variable} ${playfair.variable} ${cormorant.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -126,10 +120,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
 
       <body
-        className={cn(
-          'min-h-screen bg-casino-gradient font-sans antialiased',
-          'selection:bg-casino-gold-500 selection:text-casino-dark-50'
-        )}
+        className="min-h-screen bg-casino-gradient font-sans antialiased selection:bg-casino-gold-500 selection:text-casino-dark-50"
         suppressHydrationWarning
       >
         {/* Accessibility skip link */}
