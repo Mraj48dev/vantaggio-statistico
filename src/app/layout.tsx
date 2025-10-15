@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
-import { cn } from '@/shared/infrastructure/lib/utils'
+import { cn } from '@/lib/utils'
 
 // Font configurations for the casino platform
 const inter = Inter({
