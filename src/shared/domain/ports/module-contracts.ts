@@ -315,7 +315,7 @@ export interface SessionService {
   getActiveSessions(userId: UserId): Promise<Result<Session[], SessionError>>
 
   /** Get session history */
-  getSessionHistory(userId: UserId, params?: PaginationParams): Promise<Result<PaginatedResult<Session>, SessionError>>
+  getSessionHistory(userId: UserId, params?: { page: number; limit: number }): Promise<Result<PaginatedResult<Session>, SessionError>>
 }
 
 export interface SessionConfig {

@@ -7,10 +7,44 @@
 
 // Common types and utilities
 export * from './types/common'
-export * from './types/methods'
 
-// Module port contracts
-export * from './ports/module-contracts'
+// Method types (avoid conflicts with common types)
+export type {
+  MethodInput,
+  MethodOutput,
+  BettingMethod,
+  MethodConfig,
+  MethodMetadata,
+  MethodError,
+  MethodRegistry,
+} from './types/methods'
+
+// Re-export specific enums with prefixes to avoid conflicts
+export {
+  MethodCategory,
+  MethodDifficulty,
+  MethodRiskLevel,
+  MethodErrorCode,
+  PerformancePeriod,
+} from './types/methods'
+
+// Module port contracts (selective exports to avoid conflicts)
+export type {
+  AuthService,
+  PermissionService,
+  GameService,
+  MethodService,
+  SessionService,
+  AnalyticsService,
+  PaymentService,
+  User,
+  Package,
+  Permission,
+  GameType,
+  Method,
+  Session,
+  Subscription,
+} from './ports/module-contracts'
 
 // Type guards and utility functions
 export {

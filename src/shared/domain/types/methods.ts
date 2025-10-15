@@ -6,7 +6,7 @@
  * etc.) use the same contract for seamless interoperability.
  */
 
-import { Result, Money, UserId, SessionId } from './common'
+import { Result, Option, Money, UserId, SessionId } from './common'
 
 // ================================
 // CORE METHOD CONTRACTS - As specified in roadmap
