@@ -1,0 +1,112 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2023,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    // TypeScript specific
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/require-await": "error",
+
+    // General rules
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-debugger": "error",
+    "no-alert": "error",
+
+    // Clean Architecture enforcement
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/infrastructure/**"],
+            "message": "Domain layer cannot import from infrastructure layer. Use ports instead."
+          }
+        ]
+      }
+    ],
+
+    // React/Next.js specific
+    "react/jsx-curly-brace-presence": ["error", { "props": "never", "children": "never" }],
+    "react/self-closing-comp": ["error", { "component": true, "html": true }],
+    "react-hooks/exhaustive-deps": "warn",
+
+    // Performance
+    "@next/next/no-img-element": "error",
+    "@next/next/no-page-custom-font": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+      "env": {
+        "jest": true
+      },
+      "rules": {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["src/modules/**/domain/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/infrastructure/**", "**/application/**"],
+                "message": "Domain layer should not import from other layers."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/**/application/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/infrastructure/**"],
+                "message": "Application layer should not import from infrastructure layer. Use dependency injection."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "dist/",
+    "build/",
+    "coverage/",
+    "public/",
+    "*.config.js",
+    "*.config.ts"
+  ]
+}

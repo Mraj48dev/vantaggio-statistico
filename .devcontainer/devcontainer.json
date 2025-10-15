@@ -1,0 +1,64 @@
+{
+  "name": "Vantaggio Statistico - Casino Platform",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "Prisma.prisma",
+        "ms-vscode.vscode-json",
+        "ms-playwright.playwright",
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "typescript.preferences.includePackageJsonAutoImports": "on",
+        "tailwindCSS.includeLanguages": {
+          "typescript": "javascript",
+          "typescriptreact": "javascript"
+        },
+        "files.associations": {
+          "*.css": "tailwindcss"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 3001, 5555],
+  "portsAttributes": {
+    "3000": {
+      "label": "Next.js App",
+      "onAutoForward": "notify"
+    },
+    "3001": {
+      "label": "Next.js Dev Server",
+      "onAutoForward": "notify"
+    },
+    "5555": {
+      "label": "Prisma Studio",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "npm install",
+  "postStartCommand": "npm run db:generate",
+
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  },
+
+  "mounts": [
+    "source=vantaggio-statistico-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ]
+}

@@ -1,0 +1,354 @@
+// Prisma schema for Vantaggio Statistico casino platform
+// This implements the modular database design from the roadmap
+// with proper separation of concerns for each bounded context
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// AUTH MODULE - User Management and Authentication
+// ================================
+
+model User {
+  id                String              @id @default(uuid()) @db.Uuid
+  clerkId           String              @unique @map("clerk_id") @db.VarChar(255)
+  email             String              @unique @db.VarChar(255)
+  packageId         String              @default("free") @map("package_id") @db.VarChar(50)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  package           Package             @relation(fields: [packageId], references: [id])
+  sessions          Session[]
+  subscriptions     Subscription[]
+  activityLogs      ActivityLog[]
+
+  @@map("users")
+}
+
+// ================================
+// PERMISSIONS MODULE - RBAC and Package Management
+// ================================
+
+model Permission {
+  id           String        @id @db.VarChar(100)
+  name         String        @db.VarChar(255)
+  category     String        @db.VarChar(100)
+  resourceType String?       @map("resource_type") @db.VarChar(100)
+  resourceId   String?       @map("resource_id") @db.VarChar(100)
+  description  String?       @db.Text
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  packages     PackagePermission[]
+
+  @@map("permissions")
+}
+
+model Package {
+  id             String              @id @db.VarChar(50)
+  name           String              @db.VarChar(255)
+  displayName    String              @map("display_name") @db.VarChar(255)
+  description    String?             @db.Text
+  price          Int                 @default(0) // Price in cents
+  billingPeriod  String              @map("billing_period") @db.VarChar(20) // monthly, yearly
+  limits         Json                // JSON object with package limits
+  isActive       Boolean             @default(true) @map("is_active")
+  sortOrder      Int                 @default(0) @map("sort_order")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  permissions    PackagePermission[]
+  users          User[]
+  subscriptions  Subscription[]
+
+  @@map("packages")
+}
+
+model PackagePermission {
+  packageId    String     @map("package_id") @db.VarChar(50)
+  permissionId String     @map("permission_id") @db.VarChar(100)
+
+  // Relations
+  package      Package    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([packageId, permissionId])
+  @@map("package_permissions")
+}
+
+// ================================
+// GAMES MODULE - Game Types and Configurations
+// ================================
+
+model GameType {
+  id          String    @id @db.VarChar(50)
+  name        String    @db.VarChar(255)
+  displayName String    @map("display_name") @db.VarChar(255)
+  category    String    @db.VarChar(100) // table, slots, card
+  config      Json      // Game-specific configuration
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  methods     MethodGameType[]
+  sessions    Session[]
+
+  @@map("game_types")
+}
+
+// ================================
+// METHODS MODULE - Betting Strategies and Algorithms
+// ================================
+
+model Method {
+  id              String            @id @db.VarChar(50)
+  name            String            @db.VarChar(255)
+  displayName     String            @map("display_name") @db.VarChar(255)
+  description     String?           @db.Text
+  category        String            @db.VarChar(100) // progression, flat, system
+  requiredPackage String            @map("required_package") @db.VarChar(50)
+  configSchema    Json              @map("config_schema") // JSON Schema for method configuration
+  defaultConfig   Json?             @map("default_config") // Default configuration values
+  algorithm       String            @db.Text // Algorithm description or implementation notes
+  isActive        Boolean           @default(true) @map("is_active")
+  sortOrder       Int               @default(0) @map("sort_order")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  gameTypes       MethodGameType[]
+  sessions        Session[]
+  performance     MethodPerformance[]
+
+  @@map("methods")
+}
+
+model MethodGameType {
+  methodId   String   @map("method_id") @db.VarChar(50)
+  gameTypeId String   @map("game_type_id") @db.VarChar(50)
+
+  // Relations
+  method     Method   @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  gameType   GameType @relation(fields: [gameTypeId], references: [id], onDelete: Cascade)
+
+  @@id([methodId, gameTypeId])
+  @@map("method_game_types")
+}
+
+model MethodPerformance {
+  id            String    @id @default(uuid()) @db.Uuid
+  methodId      String    @map("method_id") @db.VarChar(50)
+  gameTypeId    String    @map("game_type_id") @db.VarChar(50)
+  period        String    @db.VarChar(20) // daily, weekly, monthly
+  periodStart   DateTime  @map("period_start") @db.Timestamptz
+  periodEnd     DateTime  @map("period_end") @db.Timestamptz
+  totalSessions Int       @default(0) @map("total_sessions")
+  totalBets     Int       @default(0) @map("total_bets")
+  totalWins     Int       @default(0) @map("total_wins")
+  totalLosses   Int       @default(0) @map("total_losses")
+  totalProfitLoss Int     @default(0) @map("total_profit_loss") // In cents
+  avgSessionDuration Int  @default(0) @map("avg_session_duration") // In seconds
+  winRate       Decimal   @default(0) @map("win_rate") @db.Decimal(5,2)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  method        Method    @relation(fields: [methodId], references: [id], onDelete: Cascade)
+
+  @@unique([methodId, gameTypeId, period, periodStart])
+  @@map("method_performance")
+}
+
+// ================================
+// SESSIONS MODULE - Game Sessions and Bet Tracking
+// ================================
+
+model Session {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  gameTypeId    String      @map("game_type_id") @db.VarChar(50)
+  methodId      String      @map("method_id") @db.VarChar(50)
+  config        Json        // Session configuration (base bet, stop loss, etc.)
+  progression   Json        @default("[]") // Current method progression state
+  status        SessionStatus @default(ACTIVE)
+  startedAt     DateTime    @default(now()) @map("started_at") @db.Timestamptz
+  endedAt       DateTime?   @map("ended_at") @db.Timestamptz
+  pausedAt      DateTime?   @map("paused_at") @db.Timestamptz
+  totalBets     Int         @default(0) @map("total_bets")
+  totalWins     Int         @default(0) @map("total_wins")
+  totalLosses   Int         @default(0) @map("total_losses")
+  profitLoss    Int         @default(0) @map("profit_loss") // In cents
+  highWatermark Int         @default(0) @map("high_watermark") // Highest profit reached
+  lowWatermark  Int         @default(0) @map("low_watermark") // Lowest point reached
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType      GameType    @relation(fields: [gameTypeId], references: [id])
+  method        Method      @relation(fields: [methodId], references: [id])
+  bets          Bet[]
+
+  @@map("sessions")
+}
+
+model Bet {
+  id          String    @id @default(uuid()) @db.Uuid
+  sessionId   String    @map("session_id") @db.Uuid
+  betType     String    @map("bet_type") @db.VarChar(50) // red, black, even, odd, number, etc.
+  betValue    String?   @map("bet_value") @db.VarChar(10) // specific number for number bets
+  amount      Int       // Bet amount in cents
+  result      BetResult?
+  outcome     String?   @db.VarChar(50) // win, loss, push
+  profitLoss  Int       @default(0) @map("profit_loss") // In cents
+  gameResult  Json?     @map("game_result") // Full game result data (number, color, etc.)
+  progression Json?     // Method progression state at time of bet
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  session     Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("bets")
+}
+
+// ================================
+// PAYMENTS MODULE - Subscriptions and Billing
+// ================================
+
+model Subscription {
+  id              String              @id @default(uuid()) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  packageId       String              @map("package_id") @db.VarChar(50)
+  stripeCustomerId String?            @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId String?        @map("stripe_subscription_id") @db.VarChar(255)
+  status          SubscriptionStatus  @default(ACTIVE)
+  billingPeriod   String              @map("billing_period") @db.VarChar(20)
+  amount          Int                 // Amount in cents
+  currency        String              @default("EUR") @db.VarChar(3)
+  startDate       DateTime            @map("start_date") @db.Timestamptz
+  endDate         DateTime?           @map("end_date") @db.Timestamptz
+  renewalDate     DateTime?           @map("renewal_date") @db.Timestamptz
+  canceledAt      DateTime?           @map("canceled_at") @db.Timestamptz
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package         Package             @relation(fields: [packageId], references: [id])
+  payments        Payment[]
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  subscriptionId    String        @map("subscription_id") @db.Uuid
+  stripePaymentIntentId String?   @map("stripe_payment_intent_id") @db.VarChar(255)
+  stripeInvoiceId   String?       @map("stripe_invoice_id") @db.VarChar(255)
+  amount            Int           // Amount in cents
+  currency          String        @default("EUR") @db.VarChar(3)
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz
+  failedAt          DateTime?     @map("failed_at") @db.Timestamptz
+  refundedAt        DateTime?     @map("refunded_at") @db.Timestamptz
+  failureReason     String?       @map("failure_reason") @db.Text
+  metadata          Json?         // Additional payment metadata
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  subscription      Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// ================================
+// ANALYTICS MODULE - Platform Analytics and User Activity
+// ================================
+
+model ActivityLog {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  action    String          @db.VarChar(100)
+  resource  String          @db.VarChar(100)
+  resourceId String?        @map("resource_id") @db.VarChar(255)
+  metadata  Json?           // Additional context data
+  ipAddress String?         @map("ip_address") @db.VarChar(45)
+  userAgent String?         @map("user_agent") @db.Text
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model PlatformStats {
+  id              String    @id @default(uuid()) @db.Uuid
+  period          String    @db.VarChar(20) // hourly, daily, weekly, monthly
+  periodStart     DateTime  @map("period_start") @db.Timestamptz
+  periodEnd       DateTime  @map("period_end") @db.Timestamptz
+  totalUsers      Int       @default(0) @map("total_users")
+  activeUsers     Int       @default(0) @map("active_users")
+  newUsers        Int       @default(0) @map("new_users")
+  totalSessions   Int       @default(0) @map("total_sessions")
+  totalBets       Int       @default(0) @map("total_bets")
+  totalRevenue    Int       @default(0) @map("total_revenue") // In cents
+  avgSessionTime  Int       @default(0) @map("avg_session_time") // In seconds
+  popularMethod   String?   @map("popular_method") @db.VarChar(50)
+  popularGame     String?   @map("popular_game") @db.VarChar(50)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([period, periodStart])
+  @@map("platform_stats")
+}
+
+// ================================
+// ENUMS - Type Safety for Status Fields
+// ================================
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+  CANCELED
+
+  @@map("session_status")
+}
+
+enum BetResult {
+  WIN
+  LOSS
+  PUSH
+
+  @@map("bet_result")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  PENDING
+  PAUSED
+
+  @@map("subscription_status")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELED
+
+  @@map("payment_status")
+}

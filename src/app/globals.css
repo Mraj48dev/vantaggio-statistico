@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import luxury fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+
+  /* Casino theme (default) */
+  .casino-theme {
+    --background: 15 8% 5%; /* Deep dark background */
+    --foreground: 45 100% 85%; /* Warm gold text */
+    --card: 15 8% 8%;
+    --card-foreground: 45 100% 85%;
+    --popover: 15 8% 8%;
+    --popover-foreground: 45 100% 85%;
+    --primary: 45 100% 50%; /* Casino gold */
+    --primary-foreground: 15 8% 5%;
+    --secondary: 142 50% 15%; /* Casino green */
+    --secondary-foreground: 45 100% 85%;
+    --muted: 15 8% 12%;
+    --muted-foreground: 45 30% 60%;
+    --accent: 0 70% 50%; /* Casino red */
+    --accent-foreground: 45 100% 85%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 15 8% 15%;
+    --input: 15 8% 12%;
+    --ring: 45 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground casino-theme;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Casino-specific base styles */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Luxury scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-casino-dark-50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-casino-gold-500 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-casino-gold-400;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-casino-gold-500 text-casino-dark-50;
+  }
+
+  /* Focus states */
+  .focus-gold {
+    @apply focus:ring-2 focus:ring-casino-gold-500 focus:ring-opacity-50 focus:outline-none;
+  }
+}
+
+@layer components {
+  /* Casino card component */
+  .casino-card {
+    @apply bg-gradient-to-br from-casino-dark-50 to-casino-dark-100
+           border border-casino-gold-500/20 rounded-lg p-6
+           shadow-luxury backdrop-blur-sm;
+  }
+
+  /* Elegant button variants */
+  .btn-casino-primary {
+    @apply bg-gradient-to-r from-casino-gold-500 to-casino-gold-600
+           text-casino-dark-50 font-semibold py-3 px-6 rounded-lg
+           shadow-gold transition-all duration-300
+           hover:from-casino-gold-400 hover:to-casino-gold-500
+           hover:shadow-lg hover:scale-105
+           focus:ring-2 focus:ring-casino-gold-500 focus:ring-opacity-50;
+  }
+
+  .btn-casino-secondary {
+    @apply bg-gradient-to-r from-casino-green-500 to-casino-green-600
+           text-white font-semibold py-3 px-6 rounded-lg
+           shadow-green-felt transition-all duration-300
+           hover:from-casino-green-400 hover:to-casino-green-500
+           hover:shadow-lg hover:scale-105;
+  }
+
+  .btn-casino-danger {
+    @apply bg-gradient-to-r from-casino-red-500 to-casino-red-600
+           text-white font-semibold py-3 px-6 rounded-lg
+           shadow-lg transition-all duration-300
+           hover:from-casino-red-400 hover:to-casino-red-500
+           hover:shadow-xl hover:scale-105;
+  }
+
+  /* Roulette table felt effect */
+  .felt-background {
+    @apply bg-green-felt relative;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  }
+
+  /* Gold text shimmer effect */
+  .text-shimmer {
+    @apply bg-gradient-to-r from-casino-gold-400 via-casino-gold-500 to-casino-gold-400
+           bg-clip-text text-transparent bg-size-200 animate-shimmer;
+  }
+
+  /* Luxury border */
+  .border-luxury {
+    @apply border border-casino-gold-500/30
+           shadow-[inset_0_1px_0_rgba(255,183,0,0.1)]
+           bg-gradient-to-r from-transparent via-casino-gold-500/5 to-transparent;
+  }
+
+  /* Chip-like elements */
+  .chip {
+    @apply relative rounded-full border-4 border-white/20
+           shadow-casino cursor-pointer transition-all duration-200
+           hover:scale-110 hover:shadow-luxury;
+  }
+
+  .chip::before {
+    content: '';
+    @apply absolute inset-0 rounded-full
+           bg-gradient-to-br from-white/20 to-transparent;
+  }
+
+  /* Money display with currency formatting */
+  .money-display {
+    @apply font-mono text-casino-gold-500 font-bold tracking-wide;
+  }
+
+  /* Elegant input styling */
+  .input-luxury {
+    @apply bg-casino-dark-100 border border-casino-gold-500/30
+           rounded-lg px-4 py-3 text-casino-gold-100
+           placeholder-casino-gold-500/50
+           focus:border-casino-gold-500 focus:ring-2 focus:ring-casino-gold-500/20
+           transition-all duration-200;
+  }
+
+  /* Table headers */
+  .table-header {
+    @apply bg-gradient-to-r from-casino-dark-50 to-casino-dark-100
+           text-casino-gold-500 font-semibold uppercase tracking-wide
+           text-sm py-3 px-6 border-b border-casino-gold-500/20;
+  }
+
+  /* Status indicators */
+  .status-active {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+           bg-casino-green-500/20 text-casino-green-400 border border-casino-green-500/30;
+  }
+
+  .status-paused {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+           bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+  }
+
+  .status-ended {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+           bg-casino-red-500/20 text-casino-red-400 border border-casino-red-500/30;
+  }
+}
+
+@layer utilities {
+  .bg-size-200 {
+    background-size: 200% 200%;
+  }
+
+  /* Text gradients */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-casino-gold-400 to-casino-gold-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-casino-green-400 to-casino-green-600 bg-clip-text text-transparent;
+  }
+
+  /* Glassmorphism effects */
+  .glass {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-md bg-black/40 border border-white/10;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
