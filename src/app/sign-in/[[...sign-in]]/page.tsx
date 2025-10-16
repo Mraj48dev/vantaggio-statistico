@@ -5,7 +5,7 @@
  * Integrates with our Auth module for user sync.
  */
 
-import { SignIn } from '@clerk/nextjs'
+// import { SignIn } from '@clerk/nextjs'
 
 export default function SignInPage() {
   return (
@@ -21,13 +21,22 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* Clerk Sign In Component */}
-        <div className="flex justify-center">
-          <SignIn
-            afterSignInUrl="/dashboard"
-            afterSignUpUrl="/dashboard"
-            redirectUrl="/dashboard"
-          />
+        {/* Temporary: Clerk Sign In Component disabled until env vars configured */}
+        <div className="flex justify-center bg-gray-800 p-8 rounded-lg border border-yellow-500/20">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-yellow-500 mb-4">
+              🚧 Autenticazione in configurazione
+            </h2>
+            <p className="text-gray-300 mb-4">
+              Il sistema di autenticazione è temporaneamente disabilitato durante la configurazione delle variabili d'ambiente.
+            </p>
+            <a
+              href="/"
+              className="bg-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded-lg hover:bg-yellow-400 transition-colors"
+            >
+              Torna alla Home
+            </a>
+          </div>
         </div>
 
         {/* Responsible Gambling Notice */}
