@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
+import { dark } from '@clerk/themes'
 import './globals.css'
 
 // Font configurations for the casino platform
@@ -93,66 +95,90 @@ interface RootLayoutProps {
  */
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html
-      lang="it"
-      className={`casino-theme ${inter.variable} ${playfair.variable} ${cormorant.variable}`}
-      suppressHydrationWarning
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: '#ffb700', // Casino gold
+          colorBackground: '#1a1a1a', // Casino dark
+          colorInputBackground: '#2a2a2a',
+          colorInputText: '#ffffff',
+        },
+        elements: {
+          formButtonPrimary: {
+            backgroundColor: '#ffb700',
+            '&:hover': {
+              backgroundColor: '#e6a600',
+            },
+          },
+          card: {
+            backgroundColor: '#1a1a1a',
+            border: '1px solid #ffb700',
+          },
+        },
+      }}
     >
-      <head>
-        {/* Preload critical fonts for performance */}
-        <link
-          rel="preload"
-          href="/fonts/playfair-display-latin.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-
-        {/* Casino-specific meta tags */}
-        <meta name="theme-color" content="#ffb700" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Vantaggio Statistico" />
-
-        {/* Gambling responsibility */}
-        <meta name="gambling-age-restriction" content="18+" />
-        <meta name="responsible-gambling" content="true" />
-      </head>
-
-      <body
-        className="min-h-screen bg-casino-gradient font-sans antialiased selection:bg-casino-gold-500 selection:text-casino-dark-50"
+      <html
+        lang="it"
+        className={`casino-theme ${inter.variable} ${playfair.variable} ${cormorant.variable}`}
         suppressHydrationWarning
       >
-        {/* Accessibility skip link */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4
-                     bg-casino-gold-500 text-casino-dark-50 px-4 py-2 rounded-lg
-                     font-semibold z-50 transition-all duration-200"
+        <head>
+          {/* Preload critical fonts for performance */}
+          <link
+            rel="preload"
+            href="/fonts/playfair-display-latin.woff2"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+          />
+
+          {/* Casino-specific meta tags */}
+          <meta name="theme-color" content="#ffb700" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-title" content="Vantaggio Statistico" />
+
+          {/* Gambling responsibility */}
+          <meta name="gambling-age-restriction" content="18+" />
+          <meta name="responsible-gambling" content="true" />
+        </head>
+
+        <body
+          className="min-h-screen bg-casino-gradient font-sans antialiased selection:bg-casino-gold-500 selection:text-casino-dark-50"
+          suppressHydrationWarning
         >
-          Salta al contenuto principale
-        </a>
+          {/* Accessibility skip link */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4
+                       bg-casino-gold-500 text-casino-dark-50 px-4 py-2 rounded-lg
+                       font-semibold z-50 transition-all duration-200"
+          >
+            Salta al contenuto principale
+          </a>
 
-        {/* Background pattern for casino ambiance */}
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,183,0,0.1),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(22,163,74,0.05),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(220,38,38,0.05),transparent_50%)]" />
-        </div>
+          {/* Background pattern for casino ambiance */}
+          <div className="fixed inset-0 -z-10 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,183,0,0.1),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(22,163,74,0.05),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(220,38,38,0.05),transparent_50%)]" />
+          </div>
 
-        {/* Main app content */}
-        <div id="main-content" className="relative">
-          {children}
-        </div>
+          {/* Main app content */}
+          <div id="main-content" className="relative">
+            {children}
+          </div>
 
-        {/* Casino platform scripts and analytics will be added here */}
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            {/* Google Analytics for Italian market - will be configured later */}
-            {/* Gambling compliance tracking - will be configured later */}
-          </>
-        )}
-      </body>
-    </html>
+          {/* Casino platform scripts and analytics will be added here */}
+          {process.env.NODE_ENV === 'production' && (
+            <>
+              {/* Google Analytics for Italian market - will be configured later */}
+              {/* Gambling compliance tracking - will be configured later */}
+            </>
+          )}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

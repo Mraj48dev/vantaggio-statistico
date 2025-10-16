@@ -1,198 +1,48 @@
+/**
+ * Database Seed Script - Vantaggio Statistico Platform
+ *
+ * Populates the database with initial data needed for development and testing.
+ * This includes packages, permissions, game types, and methods.
+ */
+
 import { PrismaClient } from '@prisma/client'
+import { seedPackages } from './seeds/packages'
 
 const prisma = new PrismaClient()
 
-/**
- * Seed data for Vantaggio Statistico casino platform
- *
- * This file initializes the database with:
- * - Default packages (Free, Premium)
- * - Permissions system
- * - Game types (starting with European Roulette)
- * - Betting methods (Fibonacci + premium strategies)
- * - Platform configuration
- */
-
 async function main() {
-  console.log('🌱 Starting seed process for Vantaggio Statistico...')
+  console.log('🌱 Starting database seeding for Vantaggio Statistico...')
 
-  // ================================
-  // PERMISSIONS - Core permissions for the platform
-  // ================================
-  console.log('📋 Creating permissions...')
+  try {
+    // Seed packages and permissions (following roadmap specification)
+    await seedPackages()
 
-  const permissions = [
-    // Game access permissions
-    { id: 'access_game_roulette_classica', name: 'Accesso Roulette Europea', category: 'game', resourceType: 'game', resourceId: 'roulette_classica' },
-    { id: 'access_game_roulette_americana', name: 'Accesso Roulette Americana', category: 'game', resourceType: 'game', resourceId: 'roulette_americana' },
-    { id: 'access_game_blackjack', name: 'Accesso Blackjack', category: 'game', resourceType: 'game', resourceId: 'blackjack' },
+    // Seed game types
+    await seedGameTypes()
 
-    // Method access permissions
-    { id: 'access_method_fibonacci', name: 'Metodo Fibonacci', category: 'method', resourceType: 'method', resourceId: 'fibonacci' },
-    { id: 'access_method_martingale', name: 'Metodo Martingale', category: 'method', resourceType: 'method', resourceId: 'martingale' },
-    { id: 'access_method_paroli', name: 'Metodo Paroli', category: 'method', resourceType: 'method', resourceId: 'paroli' },
-    { id: 'access_method_dalembert', name: 'Metodo D\'Alembert', category: 'method', resourceType: 'method', resourceId: 'dalembert' },
-    { id: 'access_method_labouchere', name: 'Metodo Labouchere', category: 'method', resourceType: 'method', resourceId: 'labouchere' },
-    { id: 'access_method_james_bond', name: 'Strategia James Bond', category: 'method', resourceType: 'method', resourceId: 'james_bond' },
+    // Seed betting methods
+    await seedMethods()
 
-    // Platform features
-    { id: 'access_analytics_basic', name: 'Analytics Base', category: 'feature', resourceType: 'analytics', resourceId: 'basic' },
-    { id: 'access_analytics_advanced', name: 'Analytics Avanzati', category: 'feature', resourceType: 'analytics', resourceId: 'advanced' },
-    { id: 'access_multiple_sessions', name: 'Sessioni Multiple', category: 'feature', resourceType: 'sessions', resourceId: 'multiple' },
-    { id: 'access_export_data', name: 'Esportazione Dati', category: 'feature', resourceType: 'export', resourceId: 'data' },
+    console.log('✅ All seeding completed successfully!')
+    console.log(`
+📊 Platform ready with:
+   - FREE Package: Fibonacci + Roulette Europea (max 1 session, 50 bets/day)
+   - PREMIUM Package: All methods + unlimited access
+   - European Roulette game engine
+   - Fibonacci, Martingale, Paroli methods
 
-    // Admin permissions
-    { id: 'admin_users_manage', name: 'Gestione Utenti', category: 'admin', resourceType: 'users', resourceId: 'manage' },
-    { id: 'admin_platform_stats', name: 'Statistiche Piattaforma', category: 'admin', resourceType: 'stats', resourceId: 'platform' },
-    { id: 'admin_content_manage', name: 'Gestione Contenuti', category: 'admin', resourceType: 'content', resourceId: 'manage' },
-  ]
-
-  for (const permission of permissions) {
-    await prisma.permission.upsert({
-      where: { id: permission.id },
-      update: {},
-      create: permission,
-    })
+🚀 Vantaggio Statistico is ready for Week 4 development!
+    `)
+  } catch (error) {
+    console.error('❌ Seeding failed:', error)
+    throw error
   }
+}
 
-  // ================================
-  // PACKAGES - Free and Premium tiers
-  // ================================
-  console.log('📦 Creating packages...')
-
-  const freePackage = await prisma.package.upsert({
-    where: { id: 'free' },
-    update: {},
-    create: {
-      id: 'free',
-      name: 'free',
-      displayName: 'Piano Gratuito',
-      description: 'Accesso base alla piattaforma con il metodo Fibonacci per la Roulette Europea',
-      price: 0,
-      billingPeriod: 'monthly',
-      limits: {
-        maxConcurrentSessions: 1,
-        maxDailyBets: 50,
-        maxSessionDuration: 7200, // 2 hours in seconds
-        analyticsRetention: 30, // days
-        exportFormats: ['csv'],
-      },
-      isActive: true,
-      sortOrder: 1,
-    },
-  })
-
-  const premiumPackage = await prisma.package.upsert({
-    where: { id: 'premium' },
-    update: {},
-    create: {
-      id: 'premium',
-      name: 'premium',
-      displayName: 'Piano Premium',
-      description: 'Accesso completo a tutti i metodi, giochi e funzionalità avanzate',
-      price: 2999, // €29.99 in cents
-      billingPeriod: 'monthly',
-      limits: {
-        maxConcurrentSessions: 5,
-        maxDailyBets: 1000,
-        maxSessionDuration: 28800, // 8 hours in seconds
-        analyticsRetention: 365, // days
-        exportFormats: ['csv', 'xlsx', 'pdf'],
-      },
-      isActive: true,
-      sortOrder: 2,
-    },
-  })
-
-  const premiumYearlyPackage = await prisma.package.upsert({
-    where: { id: 'premium_yearly' },
-    update: {},
-    create: {
-      id: 'premium_yearly',
-      name: 'premium_yearly',
-      displayName: 'Piano Premium Annuale',
-      description: 'Piano premium con fatturazione annuale (2 mesi gratis)',
-      price: 29999, // €299.99 in cents (instead of €359.88)
-      billingPeriod: 'yearly',
-      limits: {
-        maxConcurrentSessions: 5,
-        maxDailyBets: 1000,
-        maxSessionDuration: 28800,
-        analyticsRetention: 365,
-        exportFormats: ['csv', 'xlsx', 'pdf'],
-      },
-      isActive: true,
-      sortOrder: 3,
-    },
-  })
-
-  // ================================
-  // PACKAGE PERMISSIONS - Assign permissions to packages
-  // ================================
-  console.log('🔑 Assigning permissions to packages...')
-
-  // Free package permissions
-  const freePermissions = [
-    'access_game_roulette_classica',
-    'access_method_fibonacci',
-    'access_analytics_basic',
-  ]
-
-  for (const permissionId of freePermissions) {
-    await prisma.packagePermission.upsert({
-      where: {
-        packageId_permissionId: {
-          packageId: 'free',
-          permissionId,
-        },
-      },
-      update: {},
-      create: {
-        packageId: 'free',
-        permissionId,
-      },
-    })
-  }
-
-  // Premium package permissions (all permissions)
-  const allPermissionIds = permissions.map(p => p.id)
-
-  for (const permissionId of allPermissionIds) {
-    await prisma.packagePermission.upsert({
-      where: {
-        packageId_permissionId: {
-          packageId: 'premium',
-          permissionId,
-        },
-      },
-      update: {},
-      create: {
-        packageId: 'premium',
-        permissionId,
-      },
-    })
-
-    await prisma.packagePermission.upsert({
-      where: {
-        packageId_permissionId: {
-          packageId: 'premium_yearly',
-          permissionId,
-        },
-      },
-      update: {},
-      create: {
-        packageId: 'premium_yearly',
-        permissionId,
-      },
-    })
-  }
-
-  // ================================
-  // GAME TYPES - Starting with European Roulette
-  // ================================
+async function seedGameTypes() {
   console.log('🎰 Creating game types...')
 
-  const rouletteClassica = await prisma.gameType.upsert({
+  await prisma.gameType.upsert({
     where: { id: 'roulette_classica' },
     update: {},
     create: {
@@ -228,20 +78,17 @@ async function main() {
       sortOrder: 1,
     },
   })
+}
 
-  // ================================
-  // BETTING METHODS - Fibonacci + Premium strategies
-  // ================================
+async function seedMethods() {
   console.log('🎯 Creating betting methods...')
 
-  const fibonacciMethod = await prisma.method.upsert({
-    where: { id: 'fibonacci' },
-    update: {},
-    create: {
+  const methods = [
+    {
       id: 'fibonacci',
       name: 'fibonacci',
       displayName: 'Metodo Fibonacci',
-      description: 'Sistema di progressione basato sulla sequenza di Fibonacci. Aumenta la puntata seguendo la sequenza dopo ogni perdita, torna indietro di 2 posizioni dopo ogni vincita.',
+      description: 'Sistema di progressione basato sulla sequenza di Fibonacci. Aumenta la puntata seguendo la sequenza dopo ogni perdita.',
       category: 'progression',
       requiredPackage: 'free',
       configSchema: {
@@ -261,19 +108,13 @@ async function main() {
         maxSequenceLength: 15,
       },
       algorithm: 'Fibonacci sequence: 1,1,2,3,5,8,13,21,34,55... On loss: advance sequence. On win: go back 2 positions.',
-      isActive: true,
       sortOrder: 1,
     },
-  })
-
-  const martingaleMethod = await prisma.method.upsert({
-    where: { id: 'martingale' },
-    update: {},
-    create: {
+    {
       id: 'martingale',
       name: 'martingale',
       displayName: 'Metodo Martingale',
-      description: 'Sistema classico di raddoppio: raddoppia la puntata dopo ogni perdita, torna alla puntata base dopo ogni vincita.',
+      description: 'Sistema classico di raddoppio: raddoppia la puntata dopo ogni perdita.',
       category: 'progression',
       requiredPackage: 'premium',
       configSchema: {
@@ -281,7 +122,6 @@ async function main() {
         properties: {
           baseAmount: { type: 'integer', minimum: 100, maximum: 10000 },
           stopLoss: { type: 'integer', minimum: 500, maximum: 100000 },
-          stopWin: { type: 'integer', minimum: 500, maximum: 100000 },
           maxDoubles: { type: 'integer', minimum: 5, maximum: 12, default: 8 },
         },
         required: ['baseAmount', 'stopLoss'],
@@ -289,23 +129,16 @@ async function main() {
       defaultConfig: {
         baseAmount: 500,
         stopLoss: 10000,
-        stopWin: 5000,
         maxDoubles: 8,
       },
-      algorithm: 'Double bet after loss, reset to base after win. High risk, high reward strategy.',
-      isActive: true,
+      algorithm: 'Double bet after loss, reset to base after win.',
       sortOrder: 2,
     },
-  })
-
-  const paroliMethod = await prisma.method.upsert({
-    where: { id: 'paroli' },
-    update: {},
-    create: {
+    {
       id: 'paroli',
       name: 'paroli',
       displayName: 'Metodo Paroli',
-      description: 'Sistema di progressione positiva: raddoppia la puntata dopo ogni vincita per un numero limitato di volte.',
+      description: 'Sistema di progressione positiva: raddoppia dopo ogni vincita.',
       category: 'progression',
       requiredPackage: 'premium',
       configSchema: {
@@ -313,7 +146,6 @@ async function main() {
         properties: {
           baseAmount: { type: 'integer', minimum: 100, maximum: 10000 },
           stopLoss: { type: 'integer', minimum: 500, maximum: 100000 },
-          stopWin: { type: 'integer', minimum: 500, maximum: 100000 },
           maxWins: { type: 'integer', minimum: 2, maximum: 5, default: 3 },
         },
         required: ['baseAmount', 'stopLoss'],
@@ -321,52 +153,36 @@ async function main() {
       defaultConfig: {
         baseAmount: 500,
         stopLoss: 5000,
-        stopWin: 10000,
         maxWins: 3,
       },
-      algorithm: 'Double bet after win, reset after loss or max wins reached. Conservative positive progression.',
-      isActive: true,
+      algorithm: 'Double bet after win, reset after loss or max wins reached.',
       sortOrder: 3,
-    },
-  })
-
-  // ================================
-  // METHOD-GAME ASSOCIATIONS
-  // ================================
-  console.log('🔗 Linking methods to game types...')
-
-  const methods = [fibonacciMethod, martingaleMethod, paroliMethod]
-  const gameTypes = [rouletteClassica]
-
-  for (const method of methods) {
-    for (const gameType of gameTypes) {
-      await prisma.methodGameType.upsert({
-        where: {
-          methodId_gameTypeId: {
-            methodId: method.id,
-            gameTypeId: gameType.id,
-          },
-        },
-        update: {},
-        create: {
-          methodId: method.id,
-          gameTypeId: gameType.id,
-        },
-      })
     }
+  ]
+
+  // Create methods
+  for (const method of methods) {
+    await prisma.method.upsert({
+      where: { id: method.id },
+      update: {},
+      create: method,
+    })
+
+    // Link to European Roulette
+    await prisma.methodGameType.upsert({
+      where: {
+        methodId_gameTypeId: {
+          methodId: method.id,
+          gameTypeId: 'roulette_classica',
+        },
+      },
+      update: {},
+      create: {
+        methodId: method.id,
+        gameTypeId: 'roulette_classica',
+      },
+    })
   }
-
-  console.log('✅ Seed completed successfully!')
-  console.log(`
-📊 Summary:
-   - ${permissions.length} permissions created
-   - 3 packages created (free, premium monthly, premium yearly)
-   - 1 game type created (European Roulette)
-   - 3 betting methods created (Fibonacci, Martingale, Paroli)
-   - All associations established
-
-🚀 Your Vantaggio Statistico platform is ready for development!
-  `)
 }
 
 main()

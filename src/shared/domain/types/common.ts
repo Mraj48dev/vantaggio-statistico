@@ -18,17 +18,33 @@
 export type Result<T, E = Error> = Success<T> | Failure<E>
 
 export interface Success<T> {
-  readonly success: true
-  readonly data: T
+  readonly isSuccess: true
+  readonly value: T
 }
 
 export interface Failure<E> {
-  readonly success: false
+  readonly isSuccess: false
   readonly error: E
 }
 
-export const Ok = <T>(data: T): Success<T> => ({ success: true, data })
-export const Err = <E>(error: E): Failure<E> => ({ success: false, error })
+export class Result<T, E = Error> {
+  private constructor(
+    public readonly isSuccess: boolean,
+    public readonly value?: T,
+    public readonly error?: E
+  ) {}
+
+  static success<T, E = Error>(value: T): Result<T, E> {
+    return new Result<T, E>(true, value, undefined)
+  }
+
+  static failure<T, E = Error>(error: E): Result<T, E> {
+    return new Result<T, E>(false, undefined, error)
+  }
+}
+
+export const Ok = <T>(data: T): Success<T> => ({ isSuccess: true, value: data })
+export const Err = <E>(error: E): Failure<E> => ({ isSuccess: false, error })
 
 /**
  * Option type for nullable values
