@@ -16,6 +16,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Skip problematic static generation
+  experimental: {
+    skipTrailingSlashRedirect: true,
+  },
 }
 
 module.exports = nextConfig

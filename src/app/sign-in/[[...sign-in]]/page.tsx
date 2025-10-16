@@ -13,10 +13,10 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-display font-bold text-casino-gold-500 mb-2">
+          <h1 className="text-4xl font-bold text-yellow-500 mb-2">
             Accedi
           </h1>
-          <p className="text-casino-gold-200">
+          <p className="text-gray-300">
             Accedi al tuo account Vantaggio Statistico
           </p>
         </div>
@@ -31,14 +31,14 @@ export default function SignInPage() {
         </div>
 
         {/* Responsible Gambling Notice */}
-        <div className="text-center text-sm text-casino-gold-300 border-t border-casino-gold-500/20 pt-6">
+        <div className="text-center text-sm text-gray-400 border-t border-yellow-500/20 pt-6">
           <p className="mb-2">
             🔞 <strong>Solo per maggiorenni</strong> - Gioco responsabile
           </p>
           <p className="text-xs">
             Il gioco può causare dipendenza. Gioca responsabilmente.
             <br />
-            <a href="#" className="text-casino-gold-500 hover:underline">
+            <a href="#" className="text-yellow-500 hover:underline">
               Risorse per il gioco responsabile
             </a>
           </p>

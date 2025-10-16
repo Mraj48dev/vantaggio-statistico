@@ -120,7 +120,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     >
       <html
         lang="it"
-        className={`casino-theme ${inter.variable} ${playfair.variable} ${cormorant.variable}`}
+        className={`${inter.variable} ${playfair.variable} ${cormorant.variable}`}
         suppressHydrationWarning
       >
         <head>
@@ -145,25 +145,18 @@ export default function RootLayout({ children }: RootLayoutProps) {
         </head>
 
         <body
-          className="min-h-screen bg-casino-gradient font-sans antialiased selection:bg-casino-gold-500 selection:text-casino-dark-50"
+          className="min-h-screen bg-gray-900 font-sans antialiased"
           suppressHydrationWarning
         >
           {/* Accessibility skip link */}
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4
-                       bg-casino-gold-500 text-casino-dark-50 px-4 py-2 rounded-lg
-                       font-semibold z-50 transition-all duration-200"
+                       bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg
+                       font-semibold z-50"
           >
             Salta al contenuto principale
           </a>
-
-          {/* Background pattern for casino ambiance */}
-          <div className="fixed inset-0 -z-10 overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,183,0,0.1),transparent_50%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(22,163,74,0.05),transparent_50%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(220,38,38,0.05),transparent_50%)]" />
-          </div>
 
           {/* Main app content */}
           <div id="main-content" className="relative">
