@@ -71,16 +71,16 @@ export default function HomePage() {
             {/* CTA Buttons */}
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="/sign-up"
+                href="/dashboard"
                 className="bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg hover:bg-yellow-400 transition-colors"
               >
-                Inizia Gratis
+                Accedi al Dashboard
               </a>
               <a
                 href="/sign-in"
                 className="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-500 transition-colors"
               >
-                Accedi
+                Registrati (In Configurazione)
               </a>
             </div>
 
