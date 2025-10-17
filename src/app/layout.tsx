@@ -2,9 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 
-// Temporary: Disable Clerk until environment variables are configured
-// import { ClerkProvider } from '@clerk/nextjs'
-// import { dark } from '@clerk/themes'
+import { ClerkProvider } from '@clerk/nextjs'
+import { dark } from '@clerk/themes'
 
 // Font configurations for the casino platform
 const inter = Inter({
@@ -96,61 +95,82 @@ interface RootLayoutProps {
  * is contained within its own module for maintainability.
  */
 export default function RootLayout({ children }: RootLayoutProps) {
-  // Temporary: Render without ClerkProvider until env vars are configured
   return (
-    <html
-      lang="it"
-      className={`${inter.variable} ${playfair.variable} ${cormorant.variable}`}
-      suppressHydrationWarning
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: '#ffb700', // Casino gold
+          colorBackground: '#111827', // Dark gray
+          colorInputBackground: '#1f2937',
+          colorInputText: '#f9fafb',
+        },
+        elements: {
+          formButtonPrimary: 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700',
+          card: 'bg-gray-800 border border-gray-700',
+          headerTitle: 'text-yellow-500 font-display',
+          socialButtonsBlockButton: 'border-gray-600 hover:bg-gray-700',
+        },
+        layout: {
+          logoImageUrl: '/logo.png', // Add your logo
+          showOptionalFields: false,
+        }
+      }}
     >
-      <head>
-        {/* Preload critical fonts for performance */}
-        <link
-          rel="preload"
-          href="/fonts/playfair-display-latin.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-
-        {/* Casino-specific meta tags */}
-        <meta name="theme-color" content="#ffb700" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Vantaggio Statistico" />
-
-        {/* Gambling responsibility */}
-        <meta name="gambling-age-restriction" content="18+" />
-        <meta name="responsible-gambling" content="true" />
-      </head>
-
-      <body
-        className="min-h-screen bg-gray-900 font-sans antialiased"
+      <html
+        lang="it"
+        className={`${inter.variable} ${playfair.variable} ${cormorant.variable}`}
         suppressHydrationWarning
       >
-        {/* Accessibility skip link */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4
-                     bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg
-                     font-semibold z-50"
+        <head>
+          {/* Preload critical fonts for performance */}
+          <link
+            rel="preload"
+            href="/fonts/playfair-display-latin.woff2"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+          />
+
+          {/* Casino-specific meta tags */}
+          <meta name="theme-color" content="#ffb700" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-title" content="Vantaggio Statistico" />
+
+          {/* Gambling responsibility */}
+          <meta name="gambling-age-restriction" content="18+" />
+          <meta name="responsible-gambling" content="true" />
+        </head>
+
+        <body
+          className="min-h-screen bg-gray-900 font-sans antialiased"
+          suppressHydrationWarning
         >
-          Salta al contenuto principale
-        </a>
+          {/* Accessibility skip link */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4
+                       bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg
+                       font-semibold z-50"
+          >
+            Salta al contenuto principale
+          </a>
 
-        {/* Main app content */}
-        <div id="main-content" className="relative">
-          {children}
-        </div>
+          {/* Main app content */}
+          <div id="main-content" className="relative">
+            {children}
+          </div>
 
-        {/* Casino platform scripts and analytics will be added here */}
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            {/* Google Analytics for Italian market - will be configured later */}
-            {/* Gambling compliance tracking - will be configured later */}
-          </>
-        )}
-      </body>
-    </html>
+          {/* Casino platform scripts and analytics will be added here */}
+          {process.env.NODE_ENV === 'production' && (
+            <>
+              {/* Google Analytics for Italian market - will be configured later */}
+              {/* Gambling compliance tracking - will be configured later */}
+            </>
+          )}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

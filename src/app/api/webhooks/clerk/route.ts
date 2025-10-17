@@ -8,7 +8,7 @@
 import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
-import { container } from '@/shared/infrastructure/di/container'
+import { authServices } from '@/modules/auth/infrastructure/di/AuthContainer'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET || 'dev-webhook-secret'
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
 async function handleUserCreated(userData: any) {
   try {
-    const authService = container.authService
+    const authService = authServices.getAuthService()
 
     const clerkUser = {
       id: userData.id,
@@ -112,7 +112,7 @@ async function handleUserCreated(userData: any) {
 
 async function handleUserUpdated(userData: any) {
   try {
-    const userRepository = container.userRepository
+    const userRepository = authServices.getUserRepository()
 
     // Find existing user
     const userResult = await userRepository.findByClerkId(userData.id)
@@ -142,7 +142,7 @@ async function handleUserUpdated(userData: any) {
 
 async function handleUserDeleted(userData: any) {
   try {
-    const userRepository = container.userRepository
+    const userRepository = authServices.getUserRepository()
 
     // Find user by Clerk ID
     const userResult = await userRepository.findByClerkId(userData.id)
