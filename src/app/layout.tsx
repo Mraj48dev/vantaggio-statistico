@@ -71,10 +71,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
   },
-  manifest: '/site.webmanifest',
 }
 
 interface RootLayoutProps {
@@ -104,15 +101,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
         suppressHydrationWarning
       >
         <head>
-          {/* Preload critical fonts for performance */}
-          <link
-            rel="preload"
-            href="/fonts/playfair-display-latin.woff2"
-            as="font"
-            type="font/woff2"
-            crossOrigin="anonymous"
-          />
-
           {/* Casino-specific meta tags */}
           <meta name="theme-color" content="#ffb700" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
