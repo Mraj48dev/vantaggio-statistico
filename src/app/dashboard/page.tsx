@@ -36,19 +36,28 @@ export default function DashboardPage() {
     const loadActiveSessions = () => {
       try {
         const stored = localStorage.getItem('activeSessions')
+        console.log('Dashboard: Loading sessions from localStorage:', stored)
+
         if (stored) {
           const sessions: ActiveSession[] = JSON.parse(stored)
           const now = Date.now()
           const validSessions = sessions.filter(session => {
             // Remove sessions older than 24 hours
-            return (now - session.createdAt) < (24 * 60 * 60 * 1000)
+            const isValid = (now - session.createdAt) < (24 * 60 * 60 * 1000)
+            console.log(`Session ${session.id}: created ${new Date(session.createdAt)}, valid: ${isValid}`)
+            return isValid
           })
+
+          console.log('Dashboard: Valid sessions found:', validSessions.length)
           setActiveSessions(validSessions)
 
           // Update localStorage if we filtered any sessions
           if (validSessions.length !== sessions.length) {
             localStorage.setItem('activeSessions', JSON.stringify(validSessions))
           }
+        } else {
+          console.log('Dashboard: No sessions in localStorage')
+          setActiveSessions([])
         }
       } catch (error) {
         console.error('Error loading active sessions:', error)
@@ -191,12 +200,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Active Sessions */}
-          {activeSessions.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                🎮 Sessioni Attive ({activeSessions.length})
-              </h2>
+          {/* Active Sessions - Always show for debugging */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              🎮 Sessioni Attive ({activeSessions.length})
+            </h2>
+
+            {activeSessions.length === 0 ? (
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <div className="text-gray-400 text-sm">Nessuna sessione attiva. Crea una nuova sessione per iniziare!</div>
+              </div>
+            ) : (
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {activeSessions.map((session) => {
@@ -240,8 +254,8 @@ export default function DashboardPage() {
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Game Selection */}
           <div className="mb-8">
