@@ -19,6 +19,7 @@ export interface FibonacciAdvancedConfig extends MethodConfig {
   baseBet: number
   stopLoss: number
   betTarget: BetTarget
+  manualBetInput: boolean // Se true, l'utente inserisce manualmente l'importo
 }
 
 export class FibonacciAdvancedMethod extends Method implements BettingMethod {
@@ -80,20 +81,36 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
         }
       }
 
-      // Get bet amount from Fibonacci sequence
-      const fibonacciMultiplier = FibonacciAdvancedMethod.FIBONACCI_SEQUENCE[currentPosition]
-      const betAmount = baseAmount * fibonacciMultiplier
+      // Get bet amount - either calculated or manual
+      let betAmount: number
+      let reasonText: string
 
-      // Check if we have enough balance
-      if (betAmount > currentBalance) {
-        return Result.success({
-          shouldBet: false,
-          betType: advancedConfig.betTarget,
-          amount: 0,
-          progression: currentProgression,
-          stopSession: true,
-          reason: 'Saldo insufficiente per la puntata richiesta'
-        })
+      if (advancedConfig.manualBetInput) {
+        // In modalità manuale, mostra la prossima posizione Fibonacci suggerita
+        const fibonacciMultiplier = FibonacciAdvancedMethod.FIBONACCI_SEQUENCE[currentPosition]
+        const suggestedAmount = baseAmount * fibonacciMultiplier
+
+        // L'importo effettivo sarà inserito dall'utente
+        betAmount = 0 // Placeholder - l'utente inserirà l'importo
+        reasonText = `Fibonacci Avanzato pos. ${currentPosition + 1}: inserisci puntata manuale (suggerito: €${suggestedAmount} = ${fibonacciMultiplier}x base)`
+      } else {
+        // Modalità automatica - calcola dalla sequenza Fibonacci
+        const fibonacciMultiplier = FibonacciAdvancedMethod.FIBONACCI_SEQUENCE[currentPosition]
+        betAmount = baseAmount * fibonacciMultiplier
+
+        // Check if we have enough balance
+        if (betAmount > currentBalance) {
+          return Result.success({
+            shouldBet: false,
+            betType: advancedConfig.betTarget,
+            amount: 0,
+            progression: currentProgression,
+            stopSession: true,
+            reason: 'Saldo insufficiente per la puntata richiesta'
+          })
+        }
+
+        reasonText = `Fibonacci Avanzato pos. ${currentPosition + 1}: punta ${fibonacciMultiplier}x base (€${betAmount})`
       }
 
       // Update progression
@@ -113,7 +130,17 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
         amount: betAmount,
         progression: newProgression,
         stopSession: false,
-        reason: `Fibonacci Avanzato pos. ${currentPosition + 1}: punta ${fibonacciMultiplier}x base su ${betTargetDescription} (€${betAmount})`
+        reason: `${reasonText} su ${betTargetDescription}`,
+        metadata: {
+          calculatedAt: new Date(),
+          methodVersion: '1.1',
+          manualInput: advancedConfig.manualBetInput,
+          fibonacciPosition: currentPosition + 1,
+          debug: {
+            currentPosition,
+            targetDescription: betTargetDescription
+          }
+        }
       })
 
     } catch (error) {
@@ -235,7 +262,10 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
 2. **Scelta del Target**: Puoi scegliere dove puntare:
    - **Colonne**: 1ª, 2ª o 3ª colonna
    - **Dozzine**: 1-12, 13-24, o 25-36
-3. **Progressione**:
+3. **Modalità di Input**:
+   - **Automatica**: Il sistema calcola automaticamente l'importo da puntare
+   - **Manuale**: Tu inserisci l'importo, il sistema determina vincita/perdita
+4. **Progressione**:
    - Inizi con 1x la puntata base
    - Su perdita: avanzi al numero successivo della sequenza
    - Su vincita: torni indietro di 2 posizioni
@@ -245,19 +275,23 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
 - **Dozzine**: Numeri consecutivi (es. 1ª: 1,2,3...12)
 - Entrambe pagano 2:1 e hanno probabilità 32.4%
 
-**Esempio pratico** (puntata base €10, 1ª Colonna):
-- Puntata 1: €10 su 1ª Colonna → Perdi → Prossima: €10
-- Puntata 2: €10 su 1ª Colonna → Perdi → Prossima: €20
-- Puntata 3: €20 su 1ª Colonna → Vinci → Prossima: €10
+**Modalità Manuale:**
+Il sistema ti suggerisce l'importo Fibonacci ma tu puoi puntare qualsiasi cifra.
+Dopo aver inserito numero uscito e importo puntato, il sistema determina automaticamente
+se hai vinto o perso basandosi sul target scelto.
+
+**Esempio pratico** (modalità manuale, 1ª Colonna):
+- Spin 1: Sistema suggerisce €10 → Tu punti €15 → Esce 7 (1ª col.) → VINCI
+- Spin 2: Sistema suggerisce €10 → Tu punti €8 → Esce 14 (2ª col.) → PERDI
 
 **Vantaggi:**
-- Flessibilità nella scelta del target
-- Progressione controllata
-- Adatto a diverse strategie
+- Massima flessibilità negli importi
+- Controllo automatico vincite/perdite
+- Progressione Fibonacci come guida
+- Adatto a bankroll management personalizzato
 
 **Rischi:**
-- Richiede disciplina nella selezione del target
-- Progressione può crescere rapidamente
+- Richiede disciplina negli importi manuali
 - Probabilità di vincita 32.4% per colonne/dozzine
     `.trim()
   }
@@ -265,12 +299,12 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
   private static getConfigSchema(): MethodConfigSchema {
     return {
       compatibleGames: ['european_roulette', 'american_roulette'],
-      requiredFields: ['baseBet', 'stopLoss', 'betTarget'],
+      requiredFields: ['baseBet', 'stopLoss', 'betTarget', 'manualBetInput'],
       fields: {
         baseBet: {
           type: 'number',
           label: 'Puntata Base',
-          description: 'Importo della puntata base in euro',
+          description: 'Importo della puntata base in euro (usato per calcolare i suggerimenti)',
           min: 1,
           max: 1000,
           default: 10,
@@ -298,6 +332,12 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
             { value: 'dozen_3', label: '3ª Dozzina (25-36)' }
           ],
           default: 'column_1'
+        },
+        manualBetInput: {
+          type: 'boolean',
+          label: 'Input Manuale Puntata',
+          description: 'Se attivo, potrai inserire manualmente l\'importo puntato (il sistema determinerà vincita/perdita automaticamente)',
+          default: true
         }
       }
     }
@@ -307,7 +347,8 @@ export class FibonacciAdvancedMethod extends Method implements BettingMethod {
     return {
       baseBet: 10,
       stopLoss: 100,
-      betTarget: 'column_1'
+      betTarget: 'column_1',
+      manualBetInput: true
     }
   }
 }

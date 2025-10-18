@@ -96,18 +96,18 @@ export const STATIC_METHODS = [
     id: { value: 'fibonacci_advanced' },
     name: 'fibonacci_advanced',
     displayName: 'Fibonacci Avanzato',
-    description: 'Sistema Fibonacci con scelta personalizzabile tra colonne e dozzine',
-    explanation: 'Versione avanzata del Fibonacci che permette di scegliere tra diverse opzioni di puntata: colonne (1ª, 2ª, 3ª) o dozzine (1-12, 13-24, 25-36). Mantiene la stessa progressione Fibonacci ma con maggiore flessibilità strategica.',
+    description: 'Sistema Fibonacci con input manuale e scelta tra colonne e dozzine',
+    explanation: 'Versione avanzata del Fibonacci con modalità input manuale: tu inserisci l\'importo puntato, il sistema determina automaticamente vincita/perdita basandosi sul numero uscito e il target scelto (colonne/dozzine).',
     category: 'progressive',
     requiredPackage: 'premium',
     configSchema: {
       compatibleGames: ['european_roulette'],
-      requiredFields: ['baseBet', 'stopLoss', 'betTarget'],
+      requiredFields: ['baseBet', 'stopLoss', 'betTarget', 'manualBetInput'],
       fields: {
         baseBet: {
           type: 'number',
           label: 'Puntata Base (€)',
-          description: 'Importo della puntata base',
+          description: 'Importo della puntata base (usato per calcolare i suggerimenti)',
           min: 1,
           max: 1000,
           default: 10,
@@ -125,7 +125,7 @@ export const STATIC_METHODS = [
         betTarget: {
           type: 'select',
           label: 'Target di Puntata',
-          description: 'Scegli dove puntare',
+          description: 'Scegli dove puntare: colonne o dozzine',
           options: [
             { value: 'column_1', label: '1ª Colonna (1,4,7,10,13,16,19,22,25,28,31,34)' },
             { value: 'column_2', label: '2ª Colonna (2,5,8,11,14,17,20,23,26,29,32,35)' },
@@ -135,10 +135,16 @@ export const STATIC_METHODS = [
             { value: 'dozen_3', label: '3ª Dozzina (25-36)' }
           ],
           default: 'column_1'
+        },
+        manualBetInput: {
+          type: 'boolean',
+          label: 'Input Manuale Puntata',
+          description: 'Se attivo, potrai inserire manualmente l\'importo puntato (il sistema determinerà vincita/perdita automaticamente)',
+          default: true
         }
       }
     },
-    defaultConfig: { baseBet: 10, stopLoss: 100, betTarget: 'column_1' },
+    defaultConfig: { baseBet: 10, stopLoss: 100, betTarget: 'column_1', manualBetInput: true },
     algorithm: 'fibonacci_advanced',
     isActive: true,
     sortOrder: 2,
