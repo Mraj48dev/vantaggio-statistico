@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 
-import { ClerkProvider } from '@clerk/nextjs'
-import { dark } from '@clerk/themes'
+// import { ClerkProvider } from '@clerk/nextjs'
+// import { dark } from '@clerk/themes'
 
 // Font configurations for the casino platform
 const inter = Inter({
@@ -96,27 +96,8 @@ interface RootLayoutProps {
  */
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <ClerkProvider
-      appearance={{
-        baseTheme: dark,
-        variables: {
-          colorPrimary: '#ffb700', // Casino gold
-          colorBackground: '#111827', // Dark gray
-          colorInputBackground: '#1f2937',
-          colorInputText: '#f9fafb',
-        },
-        elements: {
-          formButtonPrimary: 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700',
-          card: 'bg-gray-800 border border-gray-700',
-          headerTitle: 'text-yellow-500 font-display',
-          socialButtonsBlockButton: 'border-gray-600 hover:bg-gray-700',
-        },
-        layout: {
-          logoImageUrl: '/logo.png', // Add your logo
-          showOptionalFields: false,
-        }
-      }}
-    >
+    // Temporary disable Clerk for demo deployment
+    // <ClerkProvider>
       <html
         lang="it"
         className={`${inter.variable} ${playfair.variable} ${cormorant.variable}`}
@@ -171,6 +152,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           )}
         </body>
       </html>
-    </ClerkProvider>
+    // Temporary disable Clerk end
   )
 }

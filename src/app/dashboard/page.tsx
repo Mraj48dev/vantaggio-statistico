@@ -1,25 +1,40 @@
 /**
  * Dashboard Page - Game & Method Selection
  *
- * Updated dashboard integrating the Games Module with game type selection
- * and method selection flow. Step 1: Choose Game → Step 2: Choose Method → Step 3: Play
+ * Updated dashboard integrating both Games and Methods modules.
+ * Step 1: Choose Game → Step 2: Choose Method → Step 3: Configure → Step 4: Play
  */
 
 'use client'
 
 import { useState } from 'react'
-// import { useGames, GameCategory } from '@/modules/games'
+import { useGames } from '@/modules/games/infrastructure/hooks/useGames'
+import { useMethods } from '@/modules/methods/infrastructure/hooks/useMethods'
+import { MethodConfigurationModal } from '@/shared/ui/components/MethodConfigurationModal'
+
+interface MethodConfig {
+  baseBet: number
+  stopLoss: number
+}
 
 export default function DashboardPage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
+  const [methodConfig, setMethodConfig] = useState<MethodConfig | null>(null)
+  const [showConfigModal, setShowConfigModal] = useState(false)
 
-  // TEMPORARY: Disable API hook completely - use static data
-  // const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({
-  //   activeOnly: true
-  // })
+  // Use real hooks for games and methods
+  const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({
+    activeOnly: true
+  })
 
-  // Static game types data (bypassing API completely)
+  const { methods, loading: methodsLoading, error: methodsError } = useMethods({
+    userId: 'demo-user',
+    gameTypeId: selectedGameId || undefined,
+    activeOnly: true
+  })
+
+  // Fallback to static data if API fails
   const staticGameTypes = [
     {
       id: { value: 'european_roulette' },
@@ -39,12 +54,73 @@ export default function DashboardPage() {
     }
   ]
 
-  // Use static data only
-  const displayGameTypes = staticGameTypes
-  const displayLoading = false
-  const displayError = null
+  // Use real data if available, fallback to static
+  const displayGameTypes = gamesError ? staticGameTypes : gameTypes
+  const displayLoading = gamesLoading
+  const displayError = gamesError
 
   const selectedGame = displayGameTypes.find(game => game.id.value === selectedGameId)
+  const selectedMethod = methods.find(method => method.id.value === selectedMethodId)
+
+  const handleMethodSelect = (methodId: string) => {
+    setSelectedMethodId(methodId)
+    // Reset config when selecting new method
+    setMethodConfig(null)
+  }
+
+  const handleConfigureMethod = () => {
+    if (selectedMethod) {
+      setShowConfigModal(true)
+    }
+  }
+
+  const handleConfigConfirm = (config: MethodConfig) => {
+    setMethodConfig(config)
+    setShowConfigModal(false)
+  }
+
+  const isReadyToPlay = selectedGame && selectedMethod && methodConfig
+
+  const handleStartSession = async () => {
+    if (!selectedGame || !selectedMethod || !methodConfig) return
+
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 'demo-user',
+          gameTypeId: selectedGame.id.value,
+          methodId: selectedMethod.id.value,
+          config: {
+            baseAmount: methodConfig.baseBet,
+            stopLoss: methodConfig.stopLoss,
+            methodConfig: {
+              baseBet: methodConfig.baseBet,
+              stopLoss: methodConfig.stopLoss
+            }
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        alert(`Errore nella creazione della sessione: ${error.error}`)
+        return
+      }
+
+      const sessionData = await response.json()
+      console.log('Sessione creata:', sessionData)
+
+      // Redirect to game page with session ID
+      window.location.href = `/game/${sessionData.sessionId.value}`
+    } catch (error) {
+      console.error('Errore durante la creazione della sessione:', error)
+      alert('Errore durante la creazione della sessione')
+    }
+  }
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -238,127 +314,164 @@ export default function DashboardPage() {
               🎯 Passo 2: Seleziona Strategia per {selectedGame.displayName}
             </h2>
 
-            <div className="space-y-4">
-              <div
-                className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                  selectedMethod === 'fibonacci'
-                    ? 'bg-yellow-500/20 border-yellow-500'
-                    : 'bg-gray-700 border-gray-600 hover:border-yellow-500/50'
-                }`}
-                onClick={() => setSelectedMethod('fibonacci')}
+            {methodsLoading ? (
+              <div className="text-center py-8">
+                <div className="text-yellow-500">🎯 Caricando metodi disponibili...</div>
+              </div>
+            ) : methodsError ? (
+              <div className="text-center py-8">
+                <div className="text-orange-500">⚠️ Errore nel caricamento dei metodi</div>
+                <div className="text-sm text-gray-400 mt-2">Errore: {methodsError}</div>
+              </div>
+            ) : methods.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-400">Nessun metodo disponibile per questo gioco.</div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  Riprova
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Available Methods */}
+                {methods.map((method) => (
+                  <div
+                    key={method.id.value}
+                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                      selectedMethodId === method.id.value
+                        ? 'bg-yellow-500/20 border-yellow-500'
+                        : 'bg-gray-700 border-gray-600 hover:border-yellow-500/50'
+                    }`}
+                    onClick={() => handleMethodSelect(method.id.value)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-white flex items-center gap-2">
+                          {method.category === 'progressive' && '📈'}
+                          {method.category === 'flat' && '📊'}
+                          {method.category === 'system' && '🎯'}
+                          {method.displayName}
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            method.requiredPackage === 'free'
+                              ? 'bg-green-600'
+                              : 'bg-blue-600'
+                          }`}>
+                            {method.requiredPackage === 'free' ? 'GRATIS' : 'PREMIUM'}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            method.getRiskLevel() === 'low' ? 'bg-green-500/20 text-green-400' :
+                            method.getRiskLevel() === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {method.getRiskLevel().toUpperCase()}
+                          </span>
+                        </h3>
+                        <p className="text-sm text-gray-300 mt-1">
+                          {method.description}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Compatibile con: {selectedGame.isRouletteGame() ? 'Roulette' : 'Altri giochi'}
+                        </p>
+                      </div>
+                      {selectedMethodId === method.id.value && (
+                        <div className="text-yellow-500 text-xl">✓</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Premium Methods Placeholder */}
+                <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-300 flex items-center gap-2">
+                        📊 Metodi Premium
+                        <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Martingale, D'Alembert, Paroli e altri metodi avanzati.
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        🔒 Disponibile con piano Premium
+                      </p>
+                    </div>
+                    <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
+                      Upgrade
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Method Configuration */}
+        {selectedGame && selectedMethod && !methodConfig && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8 border border-yellow-500/20">
+            <h2 className="text-xl font-semibold text-yellow-500 mb-4">
+              ⚙️ Passo 3: Configura {selectedMethod.displayName}
+            </h2>
+
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+              <h4 className="text-blue-400 font-semibold mb-2">📝 Configurazione Richiesta</h4>
+              <p className="text-sm text-gray-300 mb-4">
+                Prima di iniziare a giocare, devi configurare i parametri del metodo {selectedMethod.displayName}.
+                Questo include la puntata base e il limite di perdita massima.
+              </p>
+              <button
+                onClick={handleConfigureMethod}
+                className="bg-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded hover:bg-yellow-400 transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-white flex items-center gap-2">
-                      📈 Metodo Fibonacci
-                      <span className="bg-green-600 text-xs px-2 py-1 rounded">GRATIS</span>
-                    </h3>
-                    <p className="text-sm text-gray-300 mt-1">
-                      Sistema di progressione basato sulla sequenza di Fibonacci. Ideale per principianti.
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Compatibile con: {selectedGame.isRouletteGame() ? 'Tutte le puntate esterne' : 'Puntate base'}
-                    </p>
-                  </div>
-                  {selectedMethod === 'fibonacci' && (
-                    <div className="text-yellow-500 text-xl">✓</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
-                      📊 Metodo Martingale
-                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Raddoppia la puntata dopo ogni perdita. Richiede capitale elevato.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      🔒 Disponibile con piano Premium
-                    </p>
-                  </div>
-                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
-                    Upgrade
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
-                      🎲 Metodo D'Alembert
-                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Aumenta di 1 unità dopo perdita, diminuisce di 1 dopo vincita.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      🔒 Disponibile con piano Premium
-                    </p>
-                  </div>
-                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
-                    Upgrade
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
-                      🚀 Metodo Paroli
-                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Sistema di progressione positiva. Raddoppia dopo ogni vincita.
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      🔒 Disponibile con piano Premium
-                    </p>
-                  </div>
-                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
-                    Upgrade
-                  </button>
-                </div>
-              </div>
+                📋 Configura Metodo
+              </button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Start Session */}
-        {selectedGame && selectedMethod && (
+        {/* Step 4: Ready to Play */}
+        {isReadyToPlay && (
           <div className="bg-gradient-to-r from-yellow-500/20 to-green-500/20 rounded-lg p-6 mb-8 border border-yellow-500">
             <div className="text-center">
               <h2 className="text-xl font-semibold text-yellow-500 mb-2">
-                🎯 Passo 3: Inizia Sessione
+                🎯 Passo 4: Tutto Pronto!
               </h2>
-              <p className="text-gray-300 mb-4">
-                Configurazione: <span className="font-bold text-white">{selectedGame.displayName}</span> +
-                <span className="font-bold text-white"> Metodo {selectedMethod === 'fibonacci' ? 'Fibonacci' : selectedMethod}</span>
-              </p>
+              <div className="mb-4">
+                <p className="text-gray-300 mb-2">
+                  <span className="font-bold text-white">{selectedGame.displayName}</span> +
+                  <span className="font-bold text-white"> {selectedMethod.displayName}</span>
+                </p>
+                <div className="text-sm text-gray-400 space-y-1">
+                  <p>💰 Puntata base: €{methodConfig.baseBet}</p>
+                  <p>🛑 Stop loss: €{methodConfig.stopLoss}</p>
+                  <p>🎯 Target: Prima colonna (paga 2:1)</p>
+                </div>
+              </div>
               <div className="flex justify-center gap-4">
                 <button
-                  onClick={() => window.open('/test-games', '_blank')}
+                  onClick={handleStartSession}
                   className="bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg hover:bg-yellow-400 transition-colors"
                 >
                   🎲 Inizia Sessione Live
                 </button>
                 <button
+                  onClick={() => setMethodConfig(null)}
+                  className="bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-500 transition-colors"
+                >
+                  ⚙️ Riconfigura
+                </button>
+                <button
+                  onClick={() => window.open('/test-games', '_blank')}
                   className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-500 transition-colors"
                 >
-                  📊 Modalità Simulazione
+                  📊 Modalità Demo
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-3">
-                * La sessione live ti porta alla pagina di test del Games Module
-              </p>
             </div>
           </div>
         )}
+
 
         {/* Account Management Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -450,6 +563,22 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Method Configuration Modal */}
+      {selectedMethod && (
+        <MethodConfigurationModal
+          isOpen={showConfigModal}
+          onClose={() => setShowConfigModal(false)}
+          onConfirm={handleConfigConfirm}
+          method={{
+            id: selectedMethod.id.value,
+            displayName: selectedMethod.displayName,
+            explanation: selectedMethod.explanation,
+            configSchema: selectedMethod.configSchema,
+            defaultConfig: selectedMethod.defaultConfig
+          }}
+        />
+      )}
     </div>
   )
 }

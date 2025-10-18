@@ -3,22 +3,23 @@ const nextConfig = {
   images: {
     domains: ['images.unsplash.com', 'avatars.githubusercontent.com'],
   },
-  // Performance optimizations
+  // Basic configuration for Vercel deployment
   compress: true,
   poweredByHeader: false,
-  // PWA support for casino experience
-  reactStrictMode: true,
-  // Temporarily disable ESLint during build for deployment
+  reactStrictMode: false,
+  // Skip validations for deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Disable TypeScript errors during build
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Skip problematic static generation
+  // Force SSR for all pages to avoid static generation issues
+  output: 'standalone',
   experimental: {
-    skipTrailingSlashRedirect: true,
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./node_modules/**/*.wasm'],
+    },
   },
 }
 

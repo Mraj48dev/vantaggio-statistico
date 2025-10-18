@@ -9,7 +9,6 @@
 export {
   // Entities
   GameType,
-  GameTypeId,
   GameCategory,
   GameTypeValidationError,
 
@@ -23,6 +22,8 @@ export {
   GameTypeRepositoryError,
   GameTypeRepositoryErrorCode
 } from './domain'
+
+export type { GameTypeId } from './domain'
 
 export type {
   RouletteConfig,
