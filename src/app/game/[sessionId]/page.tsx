@@ -178,9 +178,9 @@ export default function GameSessionPage() {
           nextStep = Math.min(currentStep + 1, fibSequence.length - 1)
           nextAmount = fibSequence[nextStep]
         } else {
-          // On win: go back 2 steps, minimum position 0
-          nextStep = Math.max(currentStep - 2, 0)
-          nextAmount = fibSequence[nextStep]
+          // On win: reset to position 0 (base bet)
+          nextStep = 0
+          nextAmount = fibSequence[0] // Always 1
         }
 
         // Check if should stop (demo stop loss)
@@ -200,7 +200,7 @@ export default function GameSessionPage() {
             amount: nextAmount,
             progression: fibSequence.slice(0, nextStep + 3), // Show current and next few steps
             reason: won
-              ? `Vinto! Torniamo indietro 2 posizioni (step ${nextStep})`
+              ? `Vinto! Reset alla puntata base (step ${nextStep})`
               : `Perso. Avanziamo nella sequenza (step ${nextStep})`,
             stopSession: shouldStop
           }
@@ -253,14 +253,24 @@ export default function GameSessionPage() {
   const endSession = async () => {
     if (!sessionData) return
 
-    const confirmed = confirm('Sei sicuro di voler terminare la sessione?')
+    const confirmed = confirm('Sei sicuro di voler terminare DEFINITIVAMENTE questa sessione?')
     if (!confirmed) return
 
-    // DEMO MODE: Skip API and show summary directly
-    console.log('Ending demo session - API disabled due to UUID corruption')
+    // Remove session from localStorage
+    try {
+      const stored = localStorage.getItem('activeSessions')
+      if (stored) {
+        const sessions = JSON.parse(stored)
+        const updatedSessions = sessions.filter((s: any) => s.id !== sessionId)
+        localStorage.setItem('activeSessions', JSON.stringify(updatedSessions))
+        console.log(`Session ${sessionId} removed from localStorage`)
+      }
+    } catch (error) {
+      console.error('Error removing session from localStorage:', error)
+    }
 
     // Show session summary
-    alert(`Sessione Demo terminata!\nPuntate totali: ${sessionData.session.totalBets}\nRisultato finale: €${(sessionData.session.profitLoss / 100).toFixed(2)}`)
+    alert(`Sessione terminata definitivamente!\nPuntate totali: ${sessionData.session.totalBets}\nRisultato finale: €${(sessionData.session.profitLoss / 100).toFixed(2)}`)
 
     // Redirect to dashboard
     window.location.href = '/dashboard'
@@ -449,9 +459,9 @@ export default function GameSessionPage() {
 
             {/* Method Info */}
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-yellow-500 font-semibold mb-3">🔧 Metodo Fibonacci</h3>
+              <h3 className="text-yellow-500 font-semibold mb-3">🔧 Metodo Fibonacci Base</h3>
               <div className="text-sm text-gray-300">
-                <p className="mb-2">✅ Su vincita: torna indietro 2 posizioni</p>
+                <p className="mb-2">✅ Su vincita: reset alla puntata base</p>
                 <p className="mb-2">❌ Su perdita: avanza nella sequenza</p>
                 <p>🎯 Target: Prima colonna (paga 2:1)</p>
               </div>
