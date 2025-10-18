@@ -425,8 +425,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-export const metadata = {
-  title: 'Dashboard | Vantaggio Statistico',
-  description: 'La tua dashboard personale con accesso a tutti i metodi di betting e le statistiche delle sessioni.',
-}
