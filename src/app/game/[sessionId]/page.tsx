@@ -42,8 +42,9 @@ export default function GameSessionPage() {
   const [sessionData, setSessionData] = useState<GameSessionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [spinning, setSpinning] = useState(false)
+  const [inputNumber, setInputNumber] = useState<string>('')
   const [lastResult, setLastResult] = useState<number | null>(null)
+  const [processing, setProcessing] = useState(false)
 
   // Load session data
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function GameSessionPage() {
           status: 'ACTIVE',
           totalBets: 0,
           profitLoss: 0, // In cents
-          currentProgression: [1]
+          currentProgression: [0] // Start at position 0 in fibonacci sequence
         },
         nextBetSuggestion: {
           shouldBet: true,
@@ -94,18 +95,29 @@ export default function GameSessionPage() {
     }
   }
 
-  const spinRoulette = () => {
-    setSpinning(true)
+  const submitResult = () => {
+    const number = parseInt(inputNumber)
 
-    // Simulate roulette spin with random result
-    setTimeout(() => {
-      const result = Math.floor(Math.random() * 37) // 0-36
-      setLastResult(result)
-      setSpinning(false)
+    // Validate input
+    if (isNaN(number) || number < 0 || number > 36) {
+      alert('Inserisci un numero valido da 0 a 36')
+      return
+    }
 
-      // Process the bet result
-      processBetResult(result)
-    }, 3000) // 3 second spin animation
+    if (!sessionData?.nextBetSuggestion?.shouldBet) {
+      alert('Sessione terminata, non puoi inserire altri risultati')
+      return
+    }
+
+    setProcessing(true)
+    setLastResult(number)
+
+    // Process the bet result
+    processBetResult(number)
+
+    // Clear input for next round
+    setInputNumber('')
+    setProcessing(false)
   }
 
   const processBetResult = async (number: number) => {
@@ -139,16 +151,20 @@ export default function GameSessionPage() {
         const newTotalBets = prev.session.totalBets + 1
         const newProfitLoss = prev.session.profitLoss + (payout * 100) // Convert to cents
 
-        // Simple Fibonacci progression for demo
+        // Correct Fibonacci progression logic
+        const fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+        let currentStep = prev.session.currentProgression[0] || 0 // Current position in sequence
         let nextAmount = currentBetAmount
+        let nextStep = currentStep
+
         if (!won) {
-          // On loss: move forward in fibonacci
-          const fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
-          const currentIndex = Math.min(newTotalBets, fibSequence.length - 1)
-          nextAmount = fibSequence[currentIndex]
+          // On loss: move forward in fibonacci sequence
+          nextStep = Math.min(currentStep + 1, fibSequence.length - 1)
+          nextAmount = fibSequence[nextStep]
         } else {
-          // On win: go back 2 steps or stay at base
-          nextAmount = 1 // Reset to base for demo
+          // On win: go back 2 steps, minimum position 0
+          nextStep = Math.max(currentStep - 2, 0)
+          nextAmount = fibSequence[nextStep]
         }
 
         // Check if should stop (demo stop loss)
@@ -159,14 +175,17 @@ export default function GameSessionPage() {
           session: {
             ...prev.session,
             totalBets: newTotalBets,
-            profitLoss: newProfitLoss
+            profitLoss: newProfitLoss,
+            currentProgression: [nextStep] // Save current position in fibonacci
           },
           nextBetSuggestion: shouldStop ? null : {
             shouldBet: !shouldStop,
             betType: 'column_1',
             amount: nextAmount,
-            progression: [1, 1, 2, 3, 5, 8],
-            reason: won ? 'Vinto! Ripartiamo con puntata base' : `Perso. Prossima: €${nextAmount}`,
+            progression: fibSequence.slice(0, nextStep + 3), // Show current and next few steps
+            reason: won
+              ? `Vinto! Torniamo indietro 2 posizioni (step ${nextStep})`
+              : `Perso. Avanziamo nella sequenza (step ${nextStep})`,
             stopSession: shouldStop
           }
         }
@@ -271,20 +290,41 @@ export default function GameSessionPage() {
             <div className="bg-gray-800 rounded-lg p-6 text-center">
               <h2 className="text-xl font-semibold text-yellow-500 mb-6">🎰 Roulette Europea</h2>
 
-              {/* Simplified Roulette Wheel */}
-              <div className="relative mx-auto w-64 h-64 mb-6">
-                <div className={`w-full h-full rounded-full border-4 border-yellow-500 bg-gradient-conic from-red-600 via-black to-green-600 flex items-center justify-center ${spinning ? 'animate-spin' : ''}`}>
-                  <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-yellow-500">
-                      {spinning ? '🎲' : (lastResult !== null ? lastResult : '?')}
-                    </span>
-                  </div>
+              {/* Result Input Section */}
+              <div className="mb-8">
+                <div className="text-lg text-gray-300 mb-4">
+                  Inserisci il numero uscito alla roulette (0-36):
+                </div>
+
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  <input
+                    type="number"
+                    min="0"
+                    max="36"
+                    value={inputNumber}
+                    onChange={(e) => setInputNumber(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && submitResult()}
+                    className="w-24 h-12 text-center text-2xl font-bold bg-gray-700 border-2 border-yellow-500 rounded-lg text-white"
+                    placeholder="?"
+                    disabled={processing || !sessionData?.nextBetSuggestion?.shouldBet}
+                  />
+                  <button
+                    onClick={submitResult}
+                    disabled={processing || !inputNumber || !sessionData?.nextBetSuggestion?.shouldBet}
+                    className={`px-6 py-3 rounded-lg font-semibold ${
+                      processing || !inputNumber || !sessionData?.nextBetSuggestion?.shouldBet
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
+                    }`}
+                  >
+                    {processing ? '⏳ Elaborando...' : '✅ Conferma'}
+                  </button>
                 </div>
               </div>
 
               {/* Last Result */}
-              {lastResult !== null && !spinning && (
-                <div className="mb-6">
+              {lastResult !== null && (
+                <div className="mb-6 p-4 bg-gray-700 rounded-lg">
                   <div className="text-lg text-gray-300 mb-2">Ultimo risultato:</div>
                   <div className={`text-3xl font-bold ${
                     getNumberColor(lastResult) === 'red' ? 'text-red-400' :
@@ -296,23 +336,16 @@ export default function GameSessionPage() {
                 </div>
               )}
 
-              {/* Spin Button */}
-              <button
-                onClick={spinRoulette}
-                disabled={spinning || !sessionData?.nextBetSuggestion?.shouldBet}
-                className={`px-8 py-4 rounded-lg font-semibold text-lg ${
-                  spinning || !sessionData?.nextBetSuggestion?.shouldBet
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
-                }`}
-              >
-                {spinning
-                  ? '🎲 Girando...'
-                  : sessionData?.nextBetSuggestion?.shouldBet
-                    ? '🎯 GIRA LA ROULETTE'
-                    : '⚠️ Sessione Terminata'
-                }
-              </button>
+              {/* Instructions */}
+              <div className="text-sm text-gray-400 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="font-semibold text-blue-400 mb-2">📋 Come funziona:</div>
+                <div className="space-y-1">
+                  <div>1. Gioca alla roulette con la puntata suggerita</div>
+                  <div>2. Inserisci il numero che è uscito (0-36)</div>
+                  <div>3. Il sistema calcolerà automaticamente se hai vinto</div>
+                  <div>4. Ti dirà la prossima puntata secondo Fibonacci</div>
+                </div>
+              </div>
             </div>
           </div>
 
