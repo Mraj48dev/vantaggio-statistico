@@ -8,24 +8,24 @@
 'use client'
 
 import { useState } from 'react'
-import { useGames, GameCategory } from '@/modules/games'
+// import { useGames, GameCategory } from '@/modules/games'
 
 export default function DashboardPage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
 
-  // Get available games from the Games Module
-  const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({
-    activeOnly: true
-  })
+  // TEMPORARY: Disable API hook completely - use static data
+  // const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({
+  //   activeOnly: true
+  // })
 
-  // Fallback data if API fails (temporary fix)
-  const fallbackGameTypes = [
+  // Static game types data (bypassing API completely)
+  const staticGameTypes = [
     {
       id: { value: 'european_roulette' },
       name: 'european_roulette',
       displayName: 'European Roulette',
-      category: 'table',
+      category: 'table' as const,
       config: { numbers: Array.from({length: 37}, (_, i) => i), minBet: 1, maxBet: 1000 },
       isActive: true,
       sortOrder: 1,
@@ -39,10 +39,10 @@ export default function DashboardPage() {
     }
   ]
 
-  // Use fallback if API is failing
-  const displayGameTypes = gamesError ? fallbackGameTypes : gameTypes
-  const displayLoading = gamesError ? false : gamesLoading
-  const displayError = gamesError && gameTypes.length === 0 ? gamesError : null
+  // Use static data only
+  const displayGameTypes = staticGameTypes
+  const displayLoading = false
+  const displayError = null
 
   const selectedGame = displayGameTypes.find(game => game.id.value === selectedGameId)
   return (
@@ -204,9 +204,9 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold text-white flex items-center gap-2">
-                        {game.category === GameCategory.TABLE && '🎰'}
-                        {game.category === GameCategory.CARD && '🃏'}
-                        {game.category === GameCategory.SLOTS && '🎰'}
+                        {game.category === 'table' && '🎰'}
+                        {game.category === 'card' && '🃏'}
+                        {game.category === 'slots' && '🎰'}
                         {game.displayName}
                       </h3>
                       <p className="text-sm text-gray-300 mt-1">
