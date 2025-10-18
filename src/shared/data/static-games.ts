@@ -51,9 +51,9 @@ export const STATIC_METHODS = [
   {
     id: { value: 'fibonacci' },
     name: 'fibonacci',
-    displayName: 'Fibonacci',
-    description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
-    explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita. Su vincita, torna indietro di 2 posizioni nella sequenza.',
+    displayName: 'Fibonacci Base',
+    description: 'Metodo di progressione Fibonacci con reset su vincita',
+    explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita. Su vincita, reset completo alla puntata base.',
     category: 'progressive',
     requiredPackage: 'free',
     configSchema: {

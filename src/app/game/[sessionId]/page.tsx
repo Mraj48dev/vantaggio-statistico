@@ -339,8 +339,37 @@ export default function GameSessionPage() {
             <div className="bg-gray-800 rounded-lg p-6 text-center">
               <h2 className="text-xl font-semibold text-yellow-500 mb-6">🎰 Roulette Europea</h2>
 
+              {/* STOP LOSS ALERT - MOST PROMINENT */}
+              {sessionData && !nextBetSuggestion && (
+                <div className="mb-8 bg-gradient-to-r from-red-600/30 to-red-500/30 border-4 border-red-500 rounded-xl p-8 animate-pulse">
+                  <div className="text-center">
+                    <div className="text-red-400 font-bold text-2xl mb-4">🚨 STOP LOSS RAGGIUNTO!</div>
+                    <div className="text-xl text-white mb-4">
+                      Perdita: €{Math.abs(sessionData.session.profitLoss / 100).toFixed(2)} / €{sessionData.session.config.stopLoss}
+                    </div>
+                    <div className="text-lg text-red-300 mb-4">
+                      La sessione è stata automaticamente fermata per proteggere il tuo bankroll.
+                    </div>
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={endSession}
+                        className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-500 font-semibold"
+                      >
+                        🛑 Termina Sessione
+                      </button>
+                      <button
+                        onClick={() => window.location.href = '/dashboard'}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 font-semibold"
+                      >
+                        📋 Torna al Dashboard
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Current Bet Suggestion - PROMINENT */}
-              {nextBetSuggestion && (
+              {nextBetSuggestion && nextBetSuggestion.shouldBet && (
                 <div className="mb-8 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-xl p-6">
                   <div className="text-center">
                     <div className="text-yellow-500 font-bold text-lg mb-2">🎯 PROSSIMA PUNTATA</div>
