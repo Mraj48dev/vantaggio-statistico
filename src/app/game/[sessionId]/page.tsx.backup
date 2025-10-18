@@ -1,21 +1,14 @@
 /**
- * Game Session Page - Dynamic Method Components
+ * Game Session Page - Live Gaming with Method Integration
  *
- * Refactored session page that loads method-specific components
- * based on the selected method, with dynamic titles and interfaces.
+ * Real-time gaming page where users play using their configured method.
+ * Integrates Games + Methods + Sessions modules for complete experience.
  */
 
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-
-// Import method-specific components
-import FibonacciSession from './components/FibonacciSession'
-import FibonacciAdvancedSession from './components/FibonacciAdvancedSession'
-import MartingaleSession from './components/MartingaleSession'
-import JamesBondSession from './components/JamesBondSession'
-import GenericSession from './components/GenericSession'
 
 interface GameSessionData {
   session: {
@@ -26,7 +19,6 @@ interface GameSessionData {
     config: {
       baseAmount: number
       stopLoss: number
-      [key: string]: any
     }
     status: string
     totalBets: number
@@ -50,6 +42,8 @@ export default function GameSessionPage() {
   const [sessionData, setSessionData] = useState<GameSessionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [inputNumber, setInputNumber] = useState<string>('')
+  const [inputAmount, setInputAmount] = useState<string>('') // For manual bet input
   const [lastResult, setLastResult] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
 
@@ -90,8 +84,7 @@ export default function GameSessionPage() {
           methodId: storedSession?.methodId || 'fibonacci',
           config: {
             baseAmount: sessionConfig.baseBet || sessionConfig.baseAmount,
-            stopLoss: sessionConfig.stopLoss,
-            ...sessionConfig // Include all config from stored session
+            stopLoss: sessionConfig.stopLoss
           },
           status: 'ACTIVE',
           totalBets,
@@ -100,11 +93,11 @@ export default function GameSessionPage() {
         },
         nextBetSuggestion: {
           shouldBet: Math.abs(profitLoss) < (sessionConfig.stopLoss * 100),
-          betType: sessionConfig.betTarget || 'column_1',
+          betType: 'column_1',
           amount: fibSequence[currentStep],
           progression: fibSequence.slice(0, currentStep + 3),
           reason: totalBets === 0
-            ? 'Iniziamo con la puntata base nella sequenza'
+            ? 'Iniziamo con la puntata base nella sequenza Fibonacci'
             : `Continuiamo dalla posizione ${currentStep} nella sequenza`,
           stopSession: Math.abs(profitLoss) >= (sessionConfig.stopLoss * 100)
         }
@@ -119,19 +112,50 @@ export default function GameSessionPage() {
     }
   }
 
-  const getMethodInfo = (methodId: string) => {
-    const methodInfoMap: Record<string, { name: string; description: string }> = {
-      'fibonacci': { name: 'Fibonacci Base', description: 'Metodo Fibonacci • European Roulette' },
-      'fibonacci_advanced': { name: 'Fibonacci Avanzato', description: 'Fibonacci Avanzato • European Roulette' },
-      'fibonacci_inverse': { name: 'Fibonacci Inverso', description: 'Fibonacci Inverso • European Roulette' },
-      'martingale': { name: 'Martingale', description: 'Metodo Martingale • European Roulette' },
-      'paroli': { name: 'Paroli', description: 'Sistema Paroli • European Roulette' },
-      'dalembert': { name: "D'Alembert", description: "Sistema D'Alembert • European Roulette" },
-      'labouchere': { name: 'Labouchere', description: 'Sistema Labouchere • European Roulette' },
-      'james_bond': { name: 'James Bond', description: 'Strategia James Bond • European Roulette' }
+  const submitResult = () => {
+    const number = parseInt(inputNumber)
+
+    // Validate number input
+    if (isNaN(number) || number < 0 || number > 36) {
+      alert('Inserisci un numero valido da 0 a 36')
+      return
     }
 
-    return methodInfoMap[methodId] || { name: 'Metodo Sconosciuto', description: 'European Roulette' }
+    // Check if method requires manual amount input
+    const isManualMethod = sessionData?.session.methodId === 'fibonacci_advanced' &&
+                          (sessionData as any)?.session?.config?.manualBetInput === true
+
+    let betAmount = sessionData?.nextBetSuggestion?.amount || 0
+
+    if (isManualMethod) {
+      const manualAmount = parseFloat(inputAmount)
+
+      // Validate manual amount input
+      if (isNaN(manualAmount) || manualAmount <= 0) {
+        alert('Inserisci un importo valido per la puntata')
+        return
+      }
+
+      betAmount = manualAmount
+    }
+
+    if (!sessionData?.nextBetSuggestion?.shouldBet) {
+      alert('Sessione terminata, non puoi inserire altri risultati')
+      return
+    }
+
+    setProcessing(true)
+    setLastResult(number)
+
+    // Process the bet result with manual amount if applicable
+    processBetResult(number, betAmount)
+
+    // Clear inputs for next round
+    setInputNumber('')
+    if (isManualMethod) {
+      setInputAmount('')
+    }
+    setProcessing(false)
   }
 
   const processBetResult = async (number: number, actualBetAmount?: number) => {
@@ -152,7 +176,7 @@ export default function GameSessionPage() {
 
       if (methodId === 'fibonacci_advanced') {
         // For Fibonacci Advanced, get the bet target from config
-        const betTarget = sessionData.session.config.betTarget || 'column_1'
+        const betTarget = (sessionData as any)?.session?.config?.betTarget || 'column_1'
 
         switch (betTarget) {
           case 'column_1':
@@ -174,42 +198,18 @@ export default function GameSessionPage() {
             won = number >= 25 && number <= 36
             break
         }
-      } else if (methodId === 'james_bond') {
-        // James Bond multiple bet logic - simplified to check if any bet wins
-        won = number === 0 || (number >= 13 && number <= 18) || (number >= 19 && number <= 36)
       } else {
-        // Default for other methods - use betTarget from config
-        const betTarget = sessionData.session.config.betTarget || 'red'
-
-        switch (betTarget) {
-          case 'red':
-            won = getNumberColor(number) === 'red'
-            break
-          case 'black':
-            won = getNumberColor(number) === 'black'
-            break
-          case 'even':
-            won = number % 2 === 0 && number !== 0
-            break
-          case 'odd':
-            won = number % 2 !== 0
-            break
-          case 'high':
-            won = number >= 19 && number <= 36
-            break
-          case 'low':
-            won = number >= 1 && number <= 18
-            break
-          default:
-            // Column 1 fallback
-            won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
-        }
+        // Default for other methods - column 1
+        won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
       }
 
       console.log(`Spun: ${number} (${gameResult.color}) - Bet amount: €${currentBetAmount} - Result: ${won ? 'WON' : 'LOST'}`)
 
+      // DEMO MODE: Simulate bet processing without API
+      console.log('Processing demo bet - API disabled due to UUID corruption')
+
       // Update session data locally (demo simulation)
-      const payout = won ? currentBetAmount : -currentBetAmount
+      const payout = won ? currentBetAmount * 2 : -currentBetAmount // Column/Dozen pays 2:1
 
       // Update local session state
       setSessionData(prev => {
@@ -218,38 +218,23 @@ export default function GameSessionPage() {
         const newTotalBets = prev.session.totalBets + 1
         const newProfitLoss = prev.session.profitLoss + (payout * 100) // Convert to cents
 
-        // Method-specific progression logic
+        // Correct Fibonacci progression logic
         const fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
-        let currentStep = prev.session.currentProgression[0] || 0
+        let currentStep = prev.session.currentProgression[0] || 0 // Current position in sequence
         let nextAmount = currentBetAmount
         let nextStep = currentStep
 
-        if (methodId === 'fibonacci_advanced') {
-          if (!won) {
-            nextStep = Math.min(currentStep + 1, fibSequence.length - 1)
-            nextAmount = fibSequence[nextStep]
-          } else {
-            nextStep = Math.max(0, currentStep - 2) // Go back 2 positions
-            nextAmount = fibSequence[nextStep]
-          }
-        } else if (methodId === 'martingale') {
-          if (!won) {
-            nextAmount = currentBetAmount * 2 // Double on loss
-          } else {
-            nextAmount = prev.session.config.baseAmount // Reset to base
-          }
+        if (!won) {
+          // On loss: move forward in fibonacci sequence
+          nextStep = Math.min(currentStep + 1, fibSequence.length - 1)
+          nextAmount = fibSequence[nextStep]
         } else {
-          // Default Fibonacci base logic
-          if (!won) {
-            nextStep = Math.min(currentStep + 1, fibSequence.length - 1)
-            nextAmount = fibSequence[nextStep]
-          } else {
-            nextStep = 0
-            nextAmount = fibSequence[0]
-          }
+          // On win: reset to position 0 (base bet)
+          nextStep = 0
+          nextAmount = fibSequence[0] // Always 1
         }
 
-        // Check if should stop
+        // Check if should stop (demo stop loss)
         const shouldStop = Math.abs(newProfitLoss) >= (prev.session.config.stopLoss * 100)
 
         const updatedSessionData = {
@@ -258,16 +243,16 @@ export default function GameSessionPage() {
             ...prev.session,
             totalBets: newTotalBets,
             profitLoss: newProfitLoss,
-            currentProgression: [nextStep]
+            currentProgression: [nextStep] // Save current position in fibonacci
           },
           nextBetSuggestion: shouldStop ? null : {
             shouldBet: !shouldStop,
-            betType: prev.session.config.betTarget || 'column_1',
+            betType: 'column_1',
             amount: nextAmount,
-            progression: fibSequence.slice(0, nextStep + 3),
+            progression: fibSequence.slice(0, nextStep + 3), // Show current and next few steps
             reason: won
-              ? `Vinto! ${methodId === 'fibonacci_advanced' ? 'Torna indietro 2 posizioni' : 'Reset alla base'} (step ${nextStep})`
-              : `Perso. ${methodId === 'martingale' ? 'Raddoppia la puntata' : 'Avanziamo nella sequenza'} (step ${nextStep})`,
+              ? `Vinto! Reset alla puntata base (step ${nextStep})`
+              : `Perso. Avanziamo nella sequenza (step ${nextStep})`,
             stopSession: shouldStop
           }
         }
@@ -296,7 +281,7 @@ export default function GameSessionPage() {
         return updatedSessionData
       })
 
-      // Show result
+      // Show result with updated information
       const resultMessage = won ? 'HAI VINTO!' : 'Hai perso'
       const nextBetInfo = sessionData.nextBetSuggestion?.amount
         ? `Prossima puntata: €${sessionData.nextBetSuggestion.amount}`
@@ -342,50 +327,6 @@ export default function GameSessionPage() {
     window.location.href = '/dashboard'
   }
 
-  const renderMethodComponent = () => {
-    if (!sessionData || !sessionData.nextBetSuggestion) return null
-
-    const methodId = sessionData.session.methodId
-
-    const commonProps = {
-      sessionData,
-      nextBetSuggestion: sessionData.nextBetSuggestion,
-      onSubmitResult: processBetResult,
-      processing,
-      lastResult,
-      getNumberColor
-    }
-
-    switch (methodId) {
-      case 'fibonacci':
-        return <FibonacciSession {...commonProps} />
-
-      case 'fibonacci_advanced':
-        return <FibonacciAdvancedSession {...commonProps} />
-
-      case 'martingale':
-        return <MartingaleSession {...commonProps} />
-
-      case 'james_bond':
-        return <JamesBondSession {...commonProps} />
-
-      case 'paroli':
-        return <GenericSession {...commonProps} methodDisplayName="Paroli" primaryColor="green-500" borderColor="green-500" />
-
-      case 'dalembert':
-        return <GenericSession {...commonProps} methodDisplayName="D'Alembert" primaryColor="indigo-500" borderColor="indigo-500" />
-
-      case 'labouchere':
-        return <GenericSession {...commonProps} methodDisplayName="Labouchere" primaryColor="orange-500" borderColor="orange-500" />
-
-      case 'fibonacci_inverse':
-        return <GenericSession {...commonProps} methodDisplayName="Fibonacci Inverso" primaryColor="teal-500" borderColor="teal-500" />
-
-      default:
-        return <FibonacciSession {...commonProps} />
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -415,7 +356,6 @@ export default function GameSessionPage() {
   }
 
   const { session, nextBetSuggestion } = sessionData
-  const methodInfo = getMethodInfo(session.methodId)
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -424,7 +364,7 @@ export default function GameSessionPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-yellow-500">🎯 Sessione Live</h1>
-            <p className="text-sm text-gray-300">{methodInfo.description}</p>
+            <p className="text-sm text-gray-300">Metodo Fibonacci • European Roulette</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-sm">
@@ -445,12 +385,12 @@ export default function GameSessionPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Game Area */}
+          {/* Roulette Wheel */}
           <div className="lg:col-span-2">
             <div className="bg-gray-800 rounded-lg p-6 text-center">
-              <h2 className="text-xl font-semibold text-yellow-500 mb-6">🎰 {methodInfo.name}</h2>
+              <h2 className="text-xl font-semibold text-yellow-500 mb-6">🎰 Roulette Europea</h2>
 
-              {/* STOP LOSS ALERT */}
+              {/* STOP LOSS ALERT - MOST PROMINENT */}
               {sessionData && !nextBetSuggestion && (
                 <div className="mb-8 bg-gradient-to-r from-red-600/30 to-red-500/30 border-4 border-red-500 rounded-xl p-8 animate-pulse">
                   <div className="text-center">
@@ -479,17 +419,161 @@ export default function GameSessionPage() {
                 </div>
               )}
 
-              {/* Method-specific component */}
-              {renderMethodComponent()}
+              {/* Current Bet Suggestion - PROMINENT */}
+              {nextBetSuggestion && nextBetSuggestion.shouldBet && (() => {
+                const isManualMethod = sessionData?.session.methodId === 'fibonacci_advanced' &&
+                                      (sessionData as any)?.session?.config?.manualBetInput === true
+                const betTarget = (sessionData as any)?.session?.config?.betTarget || 'column_1'
+
+                const targetDescriptions: Record<string, string> = {
+                  'column_1': '1ª Colonna (1,4,7,10,13,16,19,22,25,28,31,34)',
+                  'column_2': '2ª Colonna (2,5,8,11,14,17,20,23,26,29,32,35)',
+                  'column_3': '3ª Colonna (3,6,9,12,15,18,21,24,27,30,33,36)',
+                  'dozen_1': '1ª Dozzina (1-12)',
+                  'dozen_2': '2ª Dozzina (13-24)',
+                  'dozen_3': '3ª Dozzina (25-36)'
+                }
+
+                const targetDesc = targetDescriptions[betTarget] || 'Prima Colonna (1,4,7,10,13,16,19,22,25,28,31,34)'
+
+                return (
+                  <div className="mb-8 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-xl p-6">
+                    <div className="text-center">
+                      <div className="text-yellow-500 font-bold text-lg mb-2">
+                        {isManualMethod ? '💰 TARGET & SUGGERIMENTO' : '🎯 PROSSIMA PUNTATA'}
+                      </div>
+
+                      {isManualMethod ? (
+                        <>
+                          <div className="text-lg text-yellow-400 font-semibold mb-3">{targetDesc}</div>
+                          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-2">
+                            <div className="text-sm text-yellow-300 mb-1">Suggerimento Fibonacci:</div>
+                            <div className="text-2xl font-bold text-white">€{nextBetSuggestion.amount}</div>
+                          </div>
+                          <div className="text-sm text-gray-300">Puoi puntare qualsiasi importo su questo target</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-4xl font-bold text-white mb-2">€{nextBetSuggestion.amount}</div>
+                          <div className="text-lg text-yellow-400 font-semibold mb-2">{targetDesc}</div>
+                          <div className="text-sm text-gray-300">{nextBetSuggestion.reason}</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Result Input Section */}
+              <div className="mb-8">
+                {(() => {
+                  const isManualMethod = sessionData?.session.methodId === 'fibonacci_advanced' &&
+                                        (sessionData as any)?.session?.config?.manualBetInput === true
+
+                  return (
+                    <>
+                      <div className="text-lg text-gray-300 mb-4">
+                        Inserisci il numero uscito alla roulette (0-36):
+                      </div>
+
+                      <div className="flex items-center justify-center gap-4 mb-6">
+                        <input
+                          type="number"
+                          min="0"
+                          max="36"
+                          value={inputNumber}
+                          onChange={(e) => setInputNumber(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && submitResult()}
+                          className="w-24 h-12 text-center text-2xl font-bold bg-gray-700 border-2 border-yellow-500 rounded-lg text-white"
+                          placeholder="?"
+                          disabled={processing || !sessionData?.nextBetSuggestion?.shouldBet}
+                        />
+
+                        {isManualMethod && (
+                          <>
+                            <div className="text-white text-lg">+</div>
+                            <div className="flex flex-col items-center">
+                              <div className="text-sm text-gray-400 mb-1">Importo puntato (€)</div>
+                              <input
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={inputAmount}
+                                onChange={(e) => setInputAmount(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && submitResult()}
+                                className="w-20 h-12 text-center text-xl font-bold bg-gray-700 border-2 border-blue-500 rounded-lg text-white"
+                                placeholder="0"
+                                disabled={processing || !sessionData?.nextBetSuggestion?.shouldBet}
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        <button
+                          onClick={submitResult}
+                          disabled={processing || !inputNumber || (isManualMethod && !inputAmount) || !sessionData?.nextBetSuggestion?.shouldBet}
+                          className={`px-6 py-3 rounded-lg font-semibold ${
+                            processing || !inputNumber || (isManualMethod && !inputAmount) || !sessionData?.nextBetSuggestion?.shouldBet
+                              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                              : 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
+                          }`}
+                        >
+                          {processing ? '⏳ Elaborando...' : '✅ Conferma'}
+                        </button>
+                      </div>
+
+                      {isManualMethod && (
+                        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm">
+                          <div className="text-blue-400 font-semibold mb-1">💡 Modalità Input Manuale Attiva</div>
+                          <div className="text-gray-300">
+                            Inserisci il <strong>numero uscito</strong> e l'<strong>importo che hai puntato</strong>.
+                            Il sistema determinerà automaticamente se hai vinto in base al target scelto.
+                          </div>
+                          {nextBetSuggestion && (
+                            <div className="text-gray-400 mt-2">
+                              Suggerimento Fibonacci: €{nextBetSuggestion.amount}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+
+              {/* Last Result */}
+              {lastResult !== null && (
+                <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+                  <div className="text-lg text-gray-300 mb-2">Ultimo risultato:</div>
+                  <div className={`text-3xl font-bold ${
+                    getNumberColor(lastResult) === 'red' ? 'text-red-400' :
+                    getNumberColor(lastResult) === 'black' ? 'text-white' :
+                    'text-green-400'
+                  }`}>
+                    {lastResult} ({getNumberColor(lastResult)})
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              <div className="text-sm text-gray-400 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="font-semibold text-blue-400 mb-2">📋 Come funziona:</div>
+                <div className="space-y-1">
+                  <div>1. Gioca alla roulette con la puntata suggerita</div>
+                  <div>2. Inserisci il numero che è uscito (0-36)</div>
+                  <div>3. Il sistema calcolerà automaticamente se hai vinto</div>
+                  <div>4. Ti dirà la prossima puntata secondo Fibonacci</div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Session Info & Method Guidance */}
           <div className="space-y-6">
-            {/* Progression Details */}
+            {/* Fibonacci Progression Details */}
             {nextBetSuggestion && (
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h3 className="text-blue-400 font-semibold mb-3">📈 Progressione {methodInfo.name}</h3>
+                <h3 className="text-blue-400 font-semibold mb-3">📈 Progressione Fibonacci</h3>
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-400">Sequenza: </span>
@@ -533,14 +617,50 @@ export default function GameSessionPage() {
 
             {/* Method Info */}
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-yellow-500 font-semibold mb-3">🔧 {methodInfo.name}</h3>
-              <div className="text-sm text-gray-300">
-                <p>Metodo attivo: <strong>{methodInfo.name}</strong></p>
-                <p>Target configurato: <strong>{session.config.betTarget || 'column_1'}</strong></p>
-                {session.config.manualBetInput && (
-                  <p className="text-blue-400 mt-2">💰 Input manuale attivo</p>
-                )}
-              </div>
+              {(() => {
+                const methodId = sessionData?.session.methodId
+                const isManualMethod = methodId === 'fibonacci_advanced' &&
+                                      (sessionData as any)?.session?.config?.manualBetInput === true
+
+                if (methodId === 'fibonacci_advanced') {
+                  const betTarget = (sessionData as any)?.session?.config?.betTarget || 'column_1'
+                  const targetDescriptions: Record<string, string> = {
+                    'column_1': '1ª Colonna',
+                    'column_2': '2ª Colonna',
+                    'column_3': '3ª Colonna',
+                    'dozen_1': '1ª Dozzina (1-12)',
+                    'dozen_2': '2ª Dozzina (13-24)',
+                    'dozen_3': '3ª Dozzina (25-36)'
+                  }
+
+                  return (
+                    <>
+                      <h3 className="text-yellow-500 font-semibold mb-3">
+                        🔧 {isManualMethod ? 'Fibonacci Avanzato (Manuale)' : 'Fibonacci Avanzato'}
+                      </h3>
+                      <div className="text-sm text-gray-300">
+                        <p className="mb-2">✅ Su vincita: torna indietro di 2 posizioni</p>
+                        <p className="mb-2">❌ Su perdita: avanza nella sequenza</p>
+                        <p className="mb-2">🎯 Target: {targetDescriptions[betTarget]} (paga 2:1)</p>
+                        {isManualMethod && (
+                          <p className="text-blue-400">💰 Input manuale: inserisci tu l'importo</p>
+                        )}
+                      </div>
+                    </>
+                  )
+                }
+
+                return (
+                  <>
+                    <h3 className="text-yellow-500 font-semibold mb-3">🔧 Metodo Fibonacci Base</h3>
+                    <div className="text-sm text-gray-300">
+                      <p className="mb-2">✅ Su vincita: reset alla puntata base</p>
+                      <p className="mb-2">❌ Su perdita: avanza nella sequenza</p>
+                      <p>🎯 Target: Prima colonna (paga 2:1)</p>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
 
             {/* Quick Actions */}
