@@ -57,32 +57,48 @@ export default function GameSessionPage() {
     try {
       setLoading(true)
 
-      // SKIP API COMPLETELY - Use static demo data
-      console.log('Loading demo session data - API disabled due to UUID corruption')
+      // Try to load session from localStorage
+      const stored = localStorage.getItem('activeSessions')
+      let storedSession = null
 
-      // Create fake session data for demo
+      if (stored) {
+        const sessions = JSON.parse(stored)
+        storedSession = sessions.find((s: any) => s.id === sessionId)
+      }
+
+      // Create session data based on localStorage or defaults
+      const sessionConfig = storedSession?.config || { baseAmount: 1, stopLoss: 100 }
+      const totalBets = storedSession?.totalBets || 0
+      const profitLoss = storedSession?.profitLoss || 0
+
+      // Calculate current fibonacci position based on total bets
+      const fibSequence = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+      const currentStep = Math.min(totalBets, fibSequence.length - 1)
+
       const demoSessionData: GameSessionData = {
         session: {
           id: { value: sessionId },
           userId: 'demo-user',
-          gameTypeId: 'european_roulette',
-          methodId: 'fibonacci',
+          gameTypeId: storedSession?.gameTypeId || 'european_roulette',
+          methodId: storedSession?.methodId || 'fibonacci',
           config: {
-            baseAmount: 1, // €1 base bet
-            stopLoss: 100  // €100 stop loss
+            baseAmount: sessionConfig.baseBet || sessionConfig.baseAmount,
+            stopLoss: sessionConfig.stopLoss
           },
           status: 'ACTIVE',
-          totalBets: 0,
-          profitLoss: 0, // In cents
-          currentProgression: [0] // Start at position 0 in fibonacci sequence
+          totalBets,
+          profitLoss, // In cents
+          currentProgression: [currentStep]
         },
         nextBetSuggestion: {
-          shouldBet: true,
+          shouldBet: Math.abs(profitLoss) < (sessionConfig.stopLoss * 100),
           betType: 'column_1',
-          amount: 1, // Start with €1
-          progression: [1, 1, 2, 3, 5, 8],
-          reason: 'Iniziamo con la puntata base nella sequenza Fibonacci',
-          stopSession: false
+          amount: fibSequence[currentStep],
+          progression: fibSequence.slice(0, currentStep + 3),
+          reason: totalBets === 0
+            ? 'Iniziamo con la puntata base nella sequenza Fibonacci'
+            : `Continuiamo dalla posizione ${currentStep} nella sequenza`,
+          stopSession: Math.abs(profitLoss) >= (sessionConfig.stopLoss * 100)
         }
       }
 
@@ -170,7 +186,7 @@ export default function GameSessionPage() {
         // Check if should stop (demo stop loss)
         const shouldStop = Math.abs(newProfitLoss) >= (prev.session.config.stopLoss * 100)
 
-        return {
+        const updatedSessionData = {
           ...prev,
           session: {
             ...prev.session,
@@ -189,6 +205,29 @@ export default function GameSessionPage() {
             stopSession: shouldStop
           }
         }
+
+        // Save to localStorage
+        try {
+          const stored = localStorage.getItem('activeSessions')
+          if (stored) {
+            const sessions = JSON.parse(stored)
+            const sessionIndex = sessions.findIndex((s: any) => s.id === sessionId)
+
+            if (sessionIndex !== -1) {
+              sessions[sessionIndex] = {
+                ...sessions[sessionIndex],
+                totalBets: newTotalBets,
+                profitLoss: newProfitLoss,
+                lastActivity: Date.now()
+              }
+              localStorage.setItem('activeSessions', JSON.stringify(sessions))
+            }
+          }
+        } catch (error) {
+          console.error('Error updating session in localStorage:', error)
+        }
+
+        return updatedSessionData
       })
 
       // Show result with updated information
@@ -290,6 +329,18 @@ export default function GameSessionPage() {
             <div className="bg-gray-800 rounded-lg p-6 text-center">
               <h2 className="text-xl font-semibold text-yellow-500 mb-6">🎰 Roulette Europea</h2>
 
+              {/* Current Bet Suggestion - PROMINENT */}
+              {nextBetSuggestion && (
+                <div className="mb-8 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-xl p-6">
+                  <div className="text-center">
+                    <div className="text-yellow-500 font-bold text-lg mb-2">🎯 PROSSIMA PUNTATA</div>
+                    <div className="text-4xl font-bold text-white mb-2">€{nextBetSuggestion.amount}</div>
+                    <div className="text-lg text-yellow-400 font-semibold mb-2">Prima Colonna (1,4,7,10,13,16,19,22,25,28,31,34)</div>
+                    <div className="text-sm text-gray-300">{nextBetSuggestion.reason}</div>
+                  </div>
+                </div>
+              )}
+
               {/* Result Input Section */}
               <div className="mb-8">
                 <div className="text-lg text-gray-300 mb-4">
@@ -351,22 +402,18 @@ export default function GameSessionPage() {
 
           {/* Session Info & Method Guidance */}
           <div className="space-y-6">
-            {/* Current Bet Suggestion */}
+            {/* Fibonacci Progression Details */}
             {nextBetSuggestion && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <h3 className="text-yellow-500 font-semibold mb-3">🎯 Prossima Puntata</h3>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h3 className="text-blue-400 font-semibold mb-3">📈 Progressione Fibonacci</h3>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-400">Tipo: </span>
-                    <span className="text-white font-medium">Prima Colonna</span>
+                    <span className="text-gray-400">Sequenza: </span>
+                    <span className="text-white font-mono">[{nextBetSuggestion.progression.join(', ')}]</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">Importo: </span>
-                    <span className="text-yellow-400 font-bold">€{nextBetSuggestion.amount}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Progressione: </span>
-                    <span className="text-white">[{nextBetSuggestion.progression.join(', ')}]</span>
+                    <span className="text-gray-400">Posizione corrente: </span>
+                    <span className="text-blue-400 font-bold">Step {sessionData?.session.currentProgression[0] || 0}</span>
                   </div>
                   <div className="text-xs text-gray-300 mt-2">
                     💡 {nextBetSuggestion.reason}
@@ -412,19 +459,22 @@ export default function GameSessionPage() {
 
             {/* Quick Actions */}
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-yellow-500 font-semibold mb-3">⚡ Azioni Rapide</h3>
+              <h3 className="text-yellow-500 font-semibold mb-3">⚡ Azioni</h3>
               <div className="space-y-2">
                 <button
                   onClick={() => window.location.href = '/dashboard'}
-                  className="w-full bg-gray-600 text-white py-2 rounded hover:bg-gray-500"
+                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-500 text-sm"
                 >
-                  📋 Torna al Dashboard
+                  📋 Pausa (Torna al Dashboard)
                 </button>
+                <div className="text-xs text-gray-400 px-2">
+                  ↳ La sessione rimane attiva per 24h
+                </div>
                 <button
                   onClick={endSession}
-                  className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-500"
+                  className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-500 text-sm"
                 >
-                  🛑 Termina Sessione
+                  🛑 Termina Definitivamente
                 </button>
               </div>
             </div>

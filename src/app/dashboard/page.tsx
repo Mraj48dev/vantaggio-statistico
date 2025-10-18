@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { STATIC_GAMES, STATIC_METHODS } from '@/shared/data/static-games'
 import { MethodConfigurationModal } from '@/shared/ui/components/MethodConfigurationModal'
 
@@ -13,11 +13,51 @@ interface MethodConfig {
   stopLoss: number
 }
 
+interface ActiveSession {
+  id: string
+  gameTypeId: string
+  methodId: string
+  config: MethodConfig
+  createdAt: number
+  lastActivity: number
+  totalBets: number
+  profitLoss: number
+}
+
 export default function DashboardPage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
   const [methodConfig, setMethodConfig] = useState<MethodConfig | null>(null)
   const [showConfigModal, setShowConfigModal] = useState(false)
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  // Load active sessions from localStorage on mount
+  useEffect(() => {
+    const loadActiveSessions = () => {
+      try {
+        const stored = localStorage.getItem('activeSessions')
+        if (stored) {
+          const sessions: ActiveSession[] = JSON.parse(stored)
+          const now = Date.now()
+          const validSessions = sessions.filter(session => {
+            // Remove sessions older than 24 hours
+            return (now - session.createdAt) < (24 * 60 * 60 * 1000)
+          })
+          setActiveSessions(validSessions)
+
+          // Update localStorage if we filtered any sessions
+          if (validSessions.length !== sessions.length) {
+            localStorage.setItem('activeSessions', JSON.stringify(validSessions))
+          }
+        }
+      } catch (error) {
+        console.error('Error loading active sessions:', error)
+        setActiveSessions([])
+      }
+    }
+
+    loadActiveSessions()
+  }, [])
 
   // NO API CALLS - ONLY STATIC DATA!
   const gameTypes = STATIC_GAMES
@@ -49,11 +89,43 @@ export default function DashboardPage() {
   const handleStartSession = async () => {
     if (!selectedGame || !selectedMethod || !methodConfig) return
 
-    // SKIP API COMPLETELY - Go straight to demo mode
-    console.log('Starting demo session - API disabled due to UUID corruption')
+    // Create new active session
+    const sessionId = `session-${Date.now()}`
+    const newSession: ActiveSession = {
+      id: sessionId,
+      gameTypeId: selectedGame.id.value,
+      methodId: selectedMethod.id.value,
+      config: methodConfig,
+      createdAt: Date.now(),
+      lastActivity: Date.now(),
+      totalBets: 0,
+      profitLoss: 0
+    }
 
-    // Redirect to demo game page immediately
-    window.location.href = `/game/demo-session-${Date.now()}`
+    // Save to localStorage
+    try {
+      const updatedSessions = [...activeSessions, newSession]
+      setActiveSessions(updatedSessions)
+      localStorage.setItem('activeSessions', JSON.stringify(updatedSessions))
+    } catch (error) {
+      console.error('Error saving session:', error)
+    }
+
+    // Redirect to game page
+    window.location.href = `/game/${sessionId}`
+  }
+
+  const deleteSession = (sessionId: string) => {
+    const confirmed = confirm('Sei sicuro di voler eliminare questa sessione?')
+    if (!confirmed) return
+
+    try {
+      const updatedSessions = activeSessions.filter(s => s.id !== sessionId)
+      setActiveSessions(updatedSessions)
+      localStorage.setItem('activeSessions', JSON.stringify(updatedSessions))
+    } catch (error) {
+      console.error('Error deleting session:', error)
+    }
   }
 
   return (
@@ -118,6 +190,58 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-300">Limite giornaliero</p>
             </div>
           </div>
+
+          {/* Active Sessions */}
+          {activeSessions.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                🎮 Sessioni Attive ({activeSessions.length})
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeSessions.map((session) => {
+                  const game = gameTypes.find(g => g.id.value === session.gameTypeId)
+                  const method = methods.find(m => m.id.value === session.methodId)
+                  const hoursAgo = Math.floor((Date.now() - session.lastActivity) / (1000 * 60 * 60))
+                  const minutesAgo = Math.floor((Date.now() - session.lastActivity) / (1000 * 60))
+
+                  return (
+                    <div key={session.id} className="bg-green-600/10 border border-green-500/30 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-green-400 font-semibold">{game?.displayName}</h3>
+                          <p className="text-sm text-gray-300">{method?.displayName}</p>
+                          <p className="text-xs text-gray-400">
+                            {hoursAgo > 0 ? `${hoursAgo}h fa` : `${minutesAgo}m fa`}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteSession(session.id)}
+                          className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-3 text-sm">
+                        <span className="text-gray-400">Puntate: {session.totalBets}</span>
+                        <span className={`font-semibold ${session.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          €{(session.profitLoss / 100).toFixed(2)}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => window.location.href = `/game/${session.id}`}
+                        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-500 font-semibold"
+                      >
+                        🎯 Riprendi Sessione
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Game Selection */}
           <div className="mb-8">
