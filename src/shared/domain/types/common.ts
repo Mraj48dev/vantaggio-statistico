@@ -27,21 +27,18 @@ export interface Failure<E> {
   readonly error: E
 }
 
-export class Result<T, E = Error> {
-  private constructor(
-    public readonly isSuccess: boolean,
-    public readonly value?: T,
-    public readonly error?: E
-  ) {}
-
+export class ResultFactory {
   static success<T, E = Error>(value: T): Result<T, E> {
-    return new Result<T, E>(true, value, undefined)
+    return { isSuccess: true, value }
   }
 
   static failure<T, E = Error>(error: E): Result<T, E> {
-    return new Result<T, E>(false, undefined, error)
+    return { isSuccess: false, error }
   }
 }
+
+// For convenience, also export as Result
+export const Result = ResultFactory
 
 export const Ok = <T>(data: T): Success<T> => ({ isSuccess: true, value: data })
 export const Err = <E>(error: E): Failure<E> => ({ isSuccess: false, error })
@@ -280,10 +277,10 @@ export interface CacheConfig {
 // ================================
 
 export const isSuccess = <T, E>(result: Result<T, E>): result is Success<T> =>
-  result.success === true
+  result.isSuccess === true
 
 export const isFailure = <T, E>(result: Result<T, E>): result is Failure<E> =>
-  result.success === false
+  result.isSuccess === false
 
 export const isSome = <T>(option: Option<T>): option is Some<T> =>
   option.isSome === true

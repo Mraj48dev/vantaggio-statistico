@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Golden color utilities for casino theme */
+@layer utilities {
+  .text-golden-400 { color: #fbbf24; }
+  .text-golden-600 { color: #d97706; }
+  .bg-golden-600 { background-color: #d97706; }
+  .bg-golden-700 { background-color: #b45309; }
+  .border-golden-400 { border-color: #fbbf24; }
+  .hover\:bg-golden-700:hover { background-color: #b45309; }
+}
+
 /* Import luxury fonts */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
 

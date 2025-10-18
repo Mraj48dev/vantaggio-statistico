@@ -18,6 +18,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:test": "DATABASE_URL=postgresql://neondb_owner:npg_xvi9kcGN4pdl@ep-blue-wind-aglvi6rb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require tsx scripts/test-db.ts",
     "auth:test": "DATABASE_URL=postgresql://neondb_owner:npg_xvi9kcGN4pdl@ep-blue-wind-aglvi6rb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require tsx scripts/test-auth.ts",
+    "games:seed": "DATABASE_URL=postgresql://neondb_owner:npg_xvi9kcGN4pdl@ep-blue-wind-aglvi6rb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require tsx scripts/seed-games.ts",
+    "games:test": "DATABASE_URL=postgresql://neondb_owner:npg_xvi9kcGN4pdl@ep-blue-wind-aglvi6rb-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require tsx scripts/test-games.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
