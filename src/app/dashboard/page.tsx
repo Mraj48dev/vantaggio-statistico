@@ -1,11 +1,25 @@
 /**
- * Dashboard Page - Account Management
+ * Dashboard Page - Game & Method Selection
  *
- * Temporary dashboard that works without Clerk authentication.
- * Once Clerk is configured, this will integrate with the Auth module.
+ * Updated dashboard integrating the Games Module with game type selection
+ * and method selection flow. Step 1: Choose Game → Step 2: Choose Method → Step 3: Play
  */
 
+'use client'
+
+import { useState } from 'react'
+import { useGames, GameCategory } from '@/modules/games'
+
 export default function DashboardPage() {
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
+
+  // Get available games from the Games Module
+  const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({
+    activeOnly: true
+  })
+
+  const selectedGame = gameTypes.find(game => game.id.value === selectedGameId)
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -26,6 +40,12 @@ export default function DashboardPage() {
                 className="text-yellow-500 border-b-2 border-yellow-500 pb-4 px-3 text-sm font-medium"
               >
                 Dashboard
+              </a>
+              <a
+                href="/test-games"
+                className="text-gray-300 hover:text-yellow-500 transition-colors px-3 text-sm font-medium"
+              >
+                🎰 Test Games
               </a>
               <a
                 href="#"
@@ -70,15 +90,15 @@ export default function DashboardPage() {
         </div>
 
         {/* Status Alert */}
-        <div className="mb-8 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+        <div className="mb-8 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
           <div className="flex items-center">
-            <span className="text-yellow-500 text-xl mr-3">🚧</span>
+            <span className="text-green-500 text-xl mr-3">🎰</span>
             <div>
-              <h3 className="text-yellow-500 font-semibold">
-                Piattaforma in Sviluppo
+              <h3 className="text-green-500 font-semibold">
+                Games Module Attivo!
               </h3>
               <p className="text-gray-300 text-sm mt-1">
-                Week 3 completata: Auth & Permissions. Prossimi moduli: Games & Methods (Week 4-5).
+                European Roulette disponibile. Seleziona un gioco e un metodo per iniziare.
               </p>
             </div>
           </div>
@@ -117,56 +137,200 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Available Methods */}
+        {/* Step 1: Game Selection */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8 border border-yellow-500/20">
           <h2 className="text-xl font-semibold text-yellow-500 mb-4">
-            Metodi Disponibili
+            🎮 Passo 1: Seleziona Gioco
           </h2>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-yellow-500/20">
-              <div>
-                <h3 className="font-semibold text-white">
-                  Metodo Fibonacci
-                </h3>
-                <p className="text-sm text-gray-300">
-                  Sistema di progressione basato sulla sequenza di Fibonacci
-                </p>
-              </div>
-              <button className="bg-yellow-500 text-gray-900 font-semibold py-2 px-4 rounded hover:bg-yellow-400 transition-colors">
-                Inizia Sessione
+          {gamesLoading ? (
+            <div className="text-center py-8">
+              <div className="text-yellow-500">🎲 Caricando giochi disponibili...</div>
+            </div>
+          ) : gamesError ? (
+            <div className="text-center py-8">
+              <div className="text-red-500">❌ Errore nel caricamento: {gamesError}</div>
+            </div>
+          ) : gameTypes.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400">Nessun gioco disponibile. Esegui il seeder prima.</div>
+              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Popola Database
               </button>
             </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600 opacity-60">
-              <div>
-                <h3 className="font-semibold text-gray-300">
-                  Metodo Martingale
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Richiede Piano Premium
-                </p>
-              </div>
-              <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
-                Upgrade
-              </button>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {gameTypes.map((game) => (
+                <div
+                  key={game.id.value}
+                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                    selectedGameId === game.id.value
+                      ? 'bg-yellow-500/20 border-yellow-500'
+                      : 'bg-gray-700 border-gray-600 hover:border-yellow-500/50'
+                  }`}
+                  onClick={() => {
+                    setSelectedGameId(game.id.value)
+                    setSelectedMethod(null) // Reset method when game changes
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-white flex items-center gap-2">
+                        {game.category === GameCategory.TABLE && '🎰'}
+                        {game.category === GameCategory.CARD && '🃏'}
+                        {game.category === GameCategory.SLOTS && '🎰'}
+                        {game.displayName}
+                      </h3>
+                      <p className="text-sm text-gray-300 mt-1">
+                        {game.isRouletteGame() && (
+                          `${game.getRouletteConfig()?.numbers.length} numeri • Min: €${game.getMinBet()} • Max: €${game.getMaxBet()}`
+                        )}
+                        {game.isBlackjackGame() && (
+                          `${game.getBlackjackConfig()?.decks} mazzi • Min: €${game.getMinBet()}`
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Categoria: {game.category}
+                      </p>
+                    </div>
+                    {selectedGameId === game.id.value && (
+                      <div className="text-yellow-500 text-xl">✓</div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+        </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg border border-gray-600 opacity-60">
-              <div>
-                <h3 className="font-semibold text-gray-300">
-                  Metodo Paroli
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Richiede Piano Premium
-                </p>
+        {/* Step 2: Method Selection */}
+        {selectedGame && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8 border border-yellow-500/20">
+            <h2 className="text-xl font-semibold text-yellow-500 mb-4">
+              🎯 Passo 2: Seleziona Strategia per {selectedGame.displayName}
+            </h2>
+
+            <div className="space-y-4">
+              <div
+                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  selectedMethod === 'fibonacci'
+                    ? 'bg-yellow-500/20 border-yellow-500'
+                    : 'bg-gray-700 border-gray-600 hover:border-yellow-500/50'
+                }`}
+                onClick={() => setSelectedMethod('fibonacci')}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      📈 Metodo Fibonacci
+                      <span className="bg-green-600 text-xs px-2 py-1 rounded">GRATIS</span>
+                    </h3>
+                    <p className="text-sm text-gray-300 mt-1">
+                      Sistema di progressione basato sulla sequenza di Fibonacci. Ideale per principianti.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Compatibile con: {selectedGame.isRouletteGame() ? 'Tutte le puntate esterne' : 'Puntate base'}
+                    </p>
+                  </div>
+                  {selectedMethod === 'fibonacci' && (
+                    <div className="text-yellow-500 text-xl">✓</div>
+                  )}
+                </div>
               </div>
-              <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
-                Upgrade
-              </button>
+
+              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
+                      📊 Metodo Martingale
+                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Raddoppia la puntata dopo ogni perdita. Richiede capitale elevato.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      🔒 Disponibile con piano Premium
+                    </p>
+                  </div>
+                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
+                    Upgrade
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
+                      🎲 Metodo D'Alembert
+                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Aumenta di 1 unità dopo perdita, diminuisce di 1 dopo vincita.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      🔒 Disponibile con piano Premium
+                    </p>
+                  </div>
+                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
+                    Upgrade
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg border border-gray-600 opacity-60 bg-gray-700/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-300 flex items-center gap-2">
+                      🚀 Metodo Paroli
+                      <span className="bg-blue-600 text-xs px-2 py-1 rounded">PREMIUM</span>
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Sistema di progressione positiva. Raddoppia dopo ogni vincita.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      🔒 Disponibile con piano Premium
+                    </p>
+                  </div>
+                  <button className="bg-gray-600 text-gray-400 font-semibold py-2 px-4 rounded cursor-not-allowed">
+                    Upgrade
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Step 3: Start Session */}
+        {selectedGame && selectedMethod && (
+          <div className="bg-gradient-to-r from-yellow-500/20 to-green-500/20 rounded-lg p-6 mb-8 border border-yellow-500">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-yellow-500 mb-2">
+                🎯 Passo 3: Inizia Sessione
+              </h2>
+              <p className="text-gray-300 mb-4">
+                Configurazione: <span className="font-bold text-white">{selectedGame.displayName}</span> +
+                <span className="font-bold text-white"> Metodo {selectedMethod === 'fibonacci' ? 'Fibonacci' : selectedMethod}</span>
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => window.open('/test-games', '_blank')}
+                  className="bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg hover:bg-yellow-400 transition-colors"
+                >
+                  🎲 Inizia Sessione Live
+                </button>
+                <button
+                  className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-500 transition-colors"
+                >
+                  📊 Modalità Simulazione
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-3">
+                * La sessione live ti porta alla pagina di test del Games Module
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Account Management Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
