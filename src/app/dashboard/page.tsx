@@ -19,7 +19,32 @@ export default function DashboardPage() {
     activeOnly: true
   })
 
-  const selectedGame = gameTypes.find(game => game.id.value === selectedGameId)
+  // Fallback data if API fails (temporary fix)
+  const fallbackGameTypes = [
+    {
+      id: { value: 'european_roulette' },
+      name: 'european_roulette',
+      displayName: 'European Roulette',
+      category: 'table',
+      config: { numbers: Array.from({length: 37}, (_, i) => i), minBet: 1, maxBet: 1000 },
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      getMinBet: () => 1,
+      getMaxBet: () => 1000,
+      isRouletteGame: () => true,
+      isBlackjackGame: () => false,
+      getRouletteConfig: () => ({ numbers: Array.from({length: 37}, (_, i) => i), minBet: 1, maxBet: 1000 })
+    }
+  ]
+
+  // Use fallback if API is failing
+  const displayGameTypes = gamesError ? fallbackGameTypes : gameTypes
+  const displayLoading = gamesError ? false : gamesLoading
+  const displayError = gamesError && gameTypes.length === 0 ? gamesError : null
+
+  const selectedGame = displayGameTypes.find(game => game.id.value === selectedGameId)
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -143,24 +168,27 @@ export default function DashboardPage() {
             🎮 Passo 1: Seleziona Gioco
           </h2>
 
-          {gamesLoading ? (
+          {displayLoading ? (
             <div className="text-center py-8">
               <div className="text-yellow-500">🎲 Caricando giochi disponibili...</div>
             </div>
-          ) : gamesError ? (
+          ) : displayError ? (
             <div className="text-center py-8">
-              <div className="text-red-500">❌ Errore nel caricamento: {gamesError}</div>
+              <div className="text-orange-500">⚠️ API temporaneamente non disponibile - Usando dati di fallback</div>
+              <div className="text-sm text-gray-400 mt-2">Errore: {displayError}</div>
             </div>
-          ) : gameTypes.length === 0 ? (
+          ) : displayGameTypes.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-gray-400">Nessun gioco disponibile. Esegui il seeder prima.</div>
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Popola Database
               </button>
             </div>
-          ) : (
+          ) : null}
+
+          {displayGameTypes.length > 0 && (
             <div className="grid md:grid-cols-2 gap-4">
-              {gameTypes.map((game) => (
+              {displayGameTypes.map((game) => (
                 <div
                   key={game.id.value}
                   className={`p-4 rounded-lg border cursor-pointer transition-all ${
