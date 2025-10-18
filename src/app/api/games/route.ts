@@ -7,56 +7,65 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { GamesContainer } from '@/modules/games'
-
-const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
+  let prisma: PrismaClient | null = null
+
   try {
+    // Create PrismaClient per request to avoid memory leaks
+    prisma = new PrismaClient()
+
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const activeOnly = searchParams.get('activeOnly') === 'true'
     const category = searchParams.get('category')
 
-    // Use Games Module use case
-    const container = GamesContainer.getInstance(prisma)
-    const useCase = container.getGameTypesUseCase
-
-    const result = await useCase.execute({
-      activeOnly,
-      category: category as any
-    })
-
-    if (!result.isSuccess) {
-      return NextResponse.json(
-        { error: result.error.message },
-        { status: 500 }
-      )
+    // Direct Prisma query (bypass Games Module for now to avoid import issues)
+    const where: any = {}
+    if (activeOnly) {
+      where.isActive = true
+    }
+    if (category) {
+      where.category = category
     }
 
-    // Transform domain entities to JSON-serializable format
-    const gameTypesData = result.value.gameTypes.map(gameType => ({
-      id: gameType.id.value,
-      name: gameType.name,
-      displayName: gameType.displayName,
-      category: gameType.category,
-      config: gameType.config,
-      isActive: gameType.isActive,
-      sortOrder: gameType.sortOrder,
-      createdAt: gameType.createdAt.toISOString(),
-      updatedAt: gameType.updatedAt.toISOString(),
-      // Helper methods as computed properties
-      minBet: gameType.getMinBet(),
-      maxBet: gameType.getMaxBet(),
-      isRouletteGame: gameType.isRouletteGame(),
-      isBlackjackGame: gameType.isBlackjackGame()
-    }))
+    const gameTypes = await prisma.gameType.findMany({
+      where,
+      orderBy: [
+        { sortOrder: 'asc' },
+        { name: 'asc' }
+      ]
+    })
+
+    // Transform to expected format
+    const gameTypesData = gameTypes.map(gameType => {
+      const config = gameType.config as any
+      const isRouletteGame = gameType.category === 'table' && config?.numbers
+      const isBlackjackGame = gameType.category === 'card' && config?.decks
+
+      return {
+        id: gameType.id,
+        name: gameType.name,
+        displayName: gameType.displayName,
+        category: gameType.category,
+        config: gameType.config,
+        isActive: gameType.isActive,
+        sortOrder: gameType.sortOrder,
+        createdAt: gameType.createdAt.toISOString(),
+        updatedAt: gameType.updatedAt.toISOString(),
+        // Helper computed properties
+        minBet: config?.minBet || 0,
+        maxBet: config?.maxBet || 0,
+        isRouletteGame,
+        isBlackjackGame
+      }
+    })
 
     return NextResponse.json({
       success: true,
       data: {
         gameTypes: gameTypesData,
-        total: result.value.total
+        total: gameTypesData.length
       }
     })
 
@@ -65,10 +74,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error'
+        error: error instanceof Error ? error.message : 'Internal server error'
       },
       { status: 500 }
     )
+  } finally {
+    // Always disconnect to prevent memory leaks
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }
 
