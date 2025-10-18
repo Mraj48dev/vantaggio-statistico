@@ -49,35 +49,10 @@ export default function DashboardPage() {
   const handleStartSession = async () => {
     if (!selectedGame || !selectedMethod || !methodConfig) return
 
-    try {
-      // Try to create session via API, but don't fail if it doesn't work
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'demo-user',
-          gameTypeId: selectedGame.id.value,
-          methodId: selectedMethod.id.value,
-          config: {
-            baseAmount: methodConfig.baseBet * 100, // Convert to cents
-            stopLoss: methodConfig.stopLoss * 100
-          }
-        })
-      })
+    // SKIP API COMPLETELY - Go straight to demo mode
+    console.log('Starting demo session - API disabled due to UUID corruption')
 
-      if (response.ok) {
-        const result = await response.json()
-        if (result.session?.id?.value) {
-          // Real session created, redirect to live game
-          window.location.href = `/game/${result.session.id.value}`
-          return
-        }
-      }
-    } catch (error) {
-      console.warn('Session API failed, using demo mode:', error)
-    }
-
-    // Fallback: redirect to demo game page
+    // Redirect to demo game page immediately
     window.location.href = `/game/demo-session-${Date.now()}`
   }
 
