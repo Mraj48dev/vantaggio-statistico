@@ -353,8 +353,15 @@ export default function DashboardPage() {
       {/* Configuration Modal */}
       {showConfigModal && selectedMethod && (
         <MethodConfigurationModal
-          method={selectedMethod}
-          onSave={handleConfigureMethod}
+          isOpen={showConfigModal}
+          method={{
+            id: selectedMethod.id.value,
+            displayName: selectedMethod.displayName,
+            explanation: selectedMethod.explanation,
+            configSchema: selectedMethod.configSchema,
+            defaultConfig: selectedMethod.defaultConfig
+          }}
+          onConfirm={handleConfigureMethod}
           onClose={() => setShowConfigModal(false)}
         />
       )}
