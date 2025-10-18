@@ -54,28 +54,44 @@ export function useGames(input: GetGameTypesUseCaseInput = {}) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Create container with new PrismaClient instance
-      // In a real app, this should be managed by a global container
-      const { PrismaClient } = await import('@prisma/client')
-      const prisma = new PrismaClient()
+      // Build query parameters
+      const params = new URLSearchParams()
+      if (input.activeOnly) params.append('activeOnly', 'true')
+      if (input.category) params.append('category', input.category)
 
-      const container = GamesContainer.getInstance(prisma)
-      const useCase = container.getGameTypesUseCase
-      const result = await useCase.execute(input)
+      // Call API endpoint
+      const response = await fetch(`/api/games?${params.toString()}`)
+      const data = await response.json()
 
-      if (result.isSuccess) {
-        setState({
-          gameTypes: result.value.gameTypes as GameType[],
-          loading: false,
-          error: null
-        })
-      } else {
-        setState({
-          gameTypes: [],
-          loading: false,
-          error: result.error.message
-        })
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to fetch game types')
       }
+
+      // Convert API response back to domain objects
+      const gameTypes = data.data.gameTypes.map((gt: any) => ({
+        id: { value: gt.id },
+        name: gt.name,
+        displayName: gt.displayName,
+        category: gt.category,
+        config: gt.config,
+        isActive: gt.isActive,
+        sortOrder: gt.sortOrder,
+        createdAt: new Date(gt.createdAt),
+        updatedAt: new Date(gt.updatedAt),
+        // Add helper methods
+        getMinBet: () => gt.minBet,
+        getMaxBet: () => gt.maxBet,
+        isRouletteGame: () => gt.isRouletteGame,
+        isBlackjackGame: () => gt.isBlackjackGame,
+        getRouletteConfig: () => gt.isRouletteGame ? gt.config : null,
+        getBlackjackConfig: () => gt.isBlackjackGame ? gt.config : null
+      }))
+
+      setState({
+        gameTypes,
+        loading: false,
+        error: null
+      })
     } catch (error) {
       setState({
         gameTypes: [],
@@ -109,30 +125,19 @@ export function useRoulette() {
     setState(prev => ({ ...prev, playing: true, error: null }))
 
     try {
-      // Create container with new PrismaClient instance
-      // In a real app, this should be managed by a global container
-      const { PrismaClient } = await import('@prisma/client')
-      const prisma = new PrismaClient()
+      // For now, this still needs server-side implementation
+      // TODO: Create /api/games/play endpoint for roulette gameplay
+      const errorMessage = 'Roulette play endpoint not implemented yet. Use /test-games page instead.'
+      setState({
+        playing: false,
+        lastResult: null,
+        error: errorMessage
+      })
 
-      const container = GamesContainer.getInstance(prisma)
-      const useCase = container.playRouletteUseCase
-      const result = await useCase.execute(input)
-
-      if (result.isSuccess) {
-        setState({
-          playing: false,
-          lastResult: result.value.spinResult,
-          error: null
-        })
-      } else {
-        setState({
-          playing: false,
-          lastResult: null,
-          error: result.error.message
-        })
-      }
-
-      return result
+      return Result.failure({
+        message: errorMessage,
+        code: 'NOT_IMPLEMENTED'
+      } as PlayRouletteUseCaseError)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setState({
@@ -173,19 +178,36 @@ export function useGameType(gameTypeId: string) {
       setError(null)
 
       try {
-        // Create container with new PrismaClient instance
-        // In a real app, this should be managed by a global container
-        const { PrismaClient } = await import('@prisma/client')
-        const prisma = new PrismaClient()
+        // For single game type, fetch all and filter
+        // TODO: Create dedicated /api/games/{id} endpoint
+        const response = await fetch('/api/games?activeOnly=false')
+        const data = await response.json()
 
-        const container = GamesContainer.getInstance(prisma)
-        const repository = container.gameTypeRepository
-        const result = await repository.findById({ value: gameTypeId })
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch game type')
+        }
 
-        if (result.isSuccess) {
-          setGameType(result.value)
+        const foundGameType = data.data.gameTypes.find((gt: any) => gt.id === gameTypeId)
+        if (foundGameType) {
+          // Convert to domain-like object
+          const gameType = {
+            id: { value: foundGameType.id },
+            name: foundGameType.name,
+            displayName: foundGameType.displayName,
+            category: foundGameType.category,
+            config: foundGameType.config,
+            isActive: foundGameType.isActive,
+            sortOrder: foundGameType.sortOrder,
+            createdAt: new Date(foundGameType.createdAt),
+            updatedAt: new Date(foundGameType.updatedAt),
+            getMinBet: () => foundGameType.minBet,
+            getMaxBet: () => foundGameType.maxBet,
+            isRouletteGame: () => foundGameType.isRouletteGame,
+            isBlackjackGame: () => foundGameType.isBlackjackGame
+          }
+          setGameType(gameType as any)
         } else {
-          setError(result.error.message)
+          setError('Game type not found')
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Unknown error occurred')
