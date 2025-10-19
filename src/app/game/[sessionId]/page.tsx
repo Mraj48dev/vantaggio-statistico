@@ -162,6 +162,7 @@ export default function GameSessionPage() {
         console.log(`🎯 Selected Bets: [${selectedBets.join(', ')}]`)
         console.log(`🎯 Winning Bets: [${winningBets.join(', ')}]`)
         console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
+        console.log(`🚫 USING SELECTED BETS - SKIPPING FALLBACK LOGIC`)
 
         // Debug specifico per numero 17
         if (number === 17) {
@@ -223,6 +224,36 @@ export default function GameSessionPage() {
             // Column 1 fallback
             won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
         }
+      } else {
+        // Fallback SOLO se non ci sono selectedBets
+        console.log(`⚠️ WARNING: No selectedBets found, using old fallback logic`)
+        const betTarget = sessionData.session.config.betTarget || 'red'
+        console.log(`Fallback logic used for betTarget: ${betTarget}`)
+
+        switch (betTarget) {
+          case 'red':
+            won = getNumberColor(number) === 'red'
+            break
+          case 'black':
+            won = getNumberColor(number) === 'black'
+            break
+          case 'even':
+            won = number % 2 === 0 && number !== 0
+            break
+          case 'odd':
+            won = number % 2 !== 0
+            break
+          case 'high':
+            won = number >= 19 && number <= 36
+            break
+          case 'low':
+            won = number >= 1 && number <= 18
+            break
+          default:
+            // Column 1 fallback
+            won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
+        }
+      }
       }
 
       console.log(`\n🎲 FINAL RESULT: ${number} (${gameResult.color}) - Bet: €${currentBetAmount} - ${won ? '✅ WON' : '❌ LOST'}\n`)
