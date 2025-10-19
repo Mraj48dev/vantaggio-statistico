@@ -78,8 +78,20 @@ export default function RouletteTable({
   const [activeTab, setActiveTab] = useState<'numbers' | 'outside'>('outside')
 
   // Determina se il metodo permette input manuale
-  const isManualMethod = sessionData?.session?.config?.manualBetInput === true
+  // Fallback: considera fibonacci_advanced sempre manuale se il flag non è esplicitamente false
+  const configManualBetInput = sessionData?.session?.config?.manualBetInput
+  const isManualMethod = configManualBetInput === true ||
+    (configManualBetInput !== false && methodId === 'fibonacci_advanced')
   const shouldDisable = disabled || !isManualMethod
+
+  // Debug: mostra la configurazione
+  console.log('RouletteTable Debug:', {
+    methodId,
+    manualBetInput: configManualBetInput,
+    isManualMethod,
+    shouldDisable,
+    config: sessionData?.session?.config
+  })
 
   const renderNumberGrid = () => {
     const rows = []
@@ -155,24 +167,24 @@ export default function RouletteTable({
         {/* Even Money Bets */}
         <div>
           <h4 className="text-lg font-semibold text-yellow-500 mb-3">Puntate Even-Money (1:1)</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
             {ROULETTE_BETS.evenMoney.map((bet) => (
               <div key={bet.id} className="relative">
                 <button
-                  className={`w-full p-3 rounded-lg border-2 font-semibold transition-all ${
+                  className={`w-full p-2 rounded border-2 font-semibold transition-all text-xs ${
                     bet.id === 'red' ? 'bg-red-500/20 border-red-500 text-red-400' :
                     bet.id === 'black' ? 'bg-gray-500/20 border-gray-500 text-gray-300' :
                     'bg-blue-500/20 border-blue-500 text-blue-400'
                   } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                   disabled={shouldDisable}
                 >
-                  <div className="text-sm">{bet.label}</div>
+                  <div className="text-xs font-medium">{bet.label}</div>
                   <div className="text-xs opacity-75">{bet.payout}</div>
                 </button>
                 {!shouldDisable && (
                   <input
                     type="checkbox"
-                    className="absolute -top-1 -right-1 w-4 h-4"
+                    className="absolute -top-1 -right-1 w-3 h-3"
                     checked={selectedBets.includes(bet.id)}
                     onChange={() => onBetToggle(bet.id)}
                   />
