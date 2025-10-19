@@ -10,6 +10,7 @@
 'use client'
 
 import { useState } from 'react'
+import RouletteTable from './RouletteTable'
 
 interface FibonacciAdvancedSessionProps {
   sessionData: any
@@ -30,6 +31,15 @@ export default function FibonacciAdvancedSession({
 }: FibonacciAdvancedSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
   const [inputAmount, setInputAmount] = useState<string>('')
+  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const handleBetToggle = (betType: string) => {
+    setSelectedBets(prev =>
+      prev.includes(betType)
+        ? prev.filter(bet => bet !== betType)
+        : [...prev, betType]
+    )
+  }
 
   const isManualMethod = sessionData?.session?.config?.manualBetInput === true
   const betTarget = sessionData?.session?.config?.betTarget || 'column_1'
@@ -111,6 +121,15 @@ export default function FibonacciAdvancedSession({
           </div>
         </div>
       )}
+
+      {/* Roulette Table */}
+      <RouletteTable
+        sessionData={sessionData}
+        selectedBets={selectedBets}
+        onBetToggle={handleBetToggle}
+        disabled={processing}
+        methodId="fibonacci_advanced"
+      />
 
       {/* Result Input Section */}
       <div className="mb-8">

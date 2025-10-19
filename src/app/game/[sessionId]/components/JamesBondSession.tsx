@@ -10,6 +10,7 @@
 'use client'
 
 import { useState } from 'react'
+import RouletteTable from './RouletteTable'
 
 interface JamesBondSessionProps {
   sessionData: any
@@ -29,6 +30,15 @@ export default function JamesBondSession({
   getNumberColor
 }: JamesBondSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
+  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const handleBetToggle = (betType: string) => {
+    setSelectedBets(prev =>
+      prev.includes(betType)
+        ? prev.filter(bet => bet !== betType)
+        : [...prev, betType]
+    )
+  }
 
   const unitSize = sessionData?.session?.config?.unitSize || 0.5
   const highBet = 140 * unitSize
@@ -86,6 +96,15 @@ export default function JamesBondSession({
           </div>
         </div>
       )}
+
+      {/* Roulette Table */}
+      <RouletteTable
+        sessionData={sessionData}
+        selectedBets={selectedBets}
+        onBetToggle={handleBetToggle}
+        disabled={processing}
+        methodId="james_bond"
+      />
 
       {/* Result Input Section */}
       <div className="mb-8">

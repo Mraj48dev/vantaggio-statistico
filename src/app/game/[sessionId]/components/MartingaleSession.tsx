@@ -10,6 +10,7 @@
 'use client'
 
 import { useState } from 'react'
+import RouletteTable from './RouletteTable'
 
 interface MartingaleSessionProps {
   sessionData: any
@@ -29,6 +30,15 @@ export default function MartingaleSession({
   getNumberColor
 }: MartingaleSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
+  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const handleBetToggle = (betType: string) => {
+    setSelectedBets(prev =>
+      prev.includes(betType)
+        ? prev.filter(bet => bet !== betType)
+        : [...prev, betType]
+    )
+  }
 
   const betTarget = sessionData?.session?.config?.betTarget || 'red'
 
@@ -76,6 +86,15 @@ export default function MartingaleSession({
           </div>
         </div>
       )}
+
+      {/* Roulette Table */}
+      <RouletteTable
+        sessionData={sessionData}
+        selectedBets={selectedBets}
+        onBetToggle={handleBetToggle}
+        disabled={processing}
+        methodId="martingale"
+      />
 
       {/* Result Input Section */}
       <div className="mb-8">

@@ -10,6 +10,7 @@
 'use client'
 
 import { useState } from 'react'
+import RouletteTable from './RouletteTable'
 
 interface FibonacciSessionProps {
   sessionData: any
@@ -29,6 +30,15 @@ export default function FibonacciSession({
   getNumberColor
 }: FibonacciSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
+  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const handleBetToggle = (betType: string) => {
+    setSelectedBets(prev =>
+      prev.includes(betType)
+        ? prev.filter(bet => bet !== betType)
+        : [...prev, betType]
+    )
+  }
 
   const handleSubmit = () => {
     const number = parseInt(inputNumber)
@@ -63,6 +73,15 @@ export default function FibonacciSession({
           </div>
         </div>
       )}
+
+      {/* Roulette Table */}
+      <RouletteTable
+        sessionData={sessionData}
+        selectedBets={selectedBets}
+        onBetToggle={handleBetToggle}
+        disabled={processing}
+        methodId="fibonacci"
+      />
 
       {/* Result Input Section */}
       <div className="mb-8">

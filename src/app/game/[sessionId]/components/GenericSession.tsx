@@ -10,6 +10,7 @@
 'use client'
 
 import { useState } from 'react'
+import RouletteTable from './RouletteTable'
 
 interface GenericSessionProps {
   sessionData: any
@@ -35,6 +36,15 @@ export default function GenericSession({
   borderColor = 'blue-500'
 }: GenericSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
+  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const handleBetToggle = (betType: string) => {
+    setSelectedBets(prev =>
+      prev.includes(betType)
+        ? prev.filter(bet => bet !== betType)
+        : [...prev, betType]
+    )
+  }
 
   const betTarget = sessionData?.session?.config?.betTarget || 'red'
 
@@ -82,6 +92,15 @@ export default function GenericSession({
           </div>
         </div>
       )}
+
+      {/* Roulette Table */}
+      <RouletteTable
+        sessionData={sessionData}
+        selectedBets={selectedBets}
+        onBetToggle={handleBetToggle}
+        disabled={processing}
+        methodId={methodDisplayName}
+      />
 
       {/* Result Input Section */}
       <div className="mb-8">
