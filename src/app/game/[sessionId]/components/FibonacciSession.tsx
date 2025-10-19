@@ -30,7 +30,8 @@ export default function FibonacciSession({
   getNumberColor
 }: FibonacciSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
-  const [selectedBets, setSelectedBets] = useState<string[]>([])
+  // Auto-select target for Fibonacci base (always automatic)
+  const [selectedBets, setSelectedBets] = useState<string[]>([sessionData?.session?.config?.betTarget || 'column_1'])
 
   const handleBetToggle = (betType: string) => {
     setSelectedBets(prev =>

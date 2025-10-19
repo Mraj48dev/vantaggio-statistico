@@ -37,9 +37,8 @@ export default function GenericSession({
 }: GenericSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
 
-  const betTarget = sessionData?.session?.config?.betTarget || 'red'
   // Auto-select target for generic methods (always automatic)
-  const [selectedBets, setSelectedBets] = useState<string[]>([betTarget])
+  const [selectedBets, setSelectedBets] = useState<string[]>([sessionData?.session?.config?.betTarget || 'red'])
 
   const handleBetToggle = (betType: string) => {
     setSelectedBets(prev =>
@@ -48,8 +47,6 @@ export default function GenericSession({
         : [...prev, betType]
     )
   }
-
-  const betTarget = sessionData?.session?.config?.betTarget || 'red'
 
   const targetDescriptions: Record<string, string> = {
     'red': 'Rosso',
@@ -60,7 +57,7 @@ export default function GenericSession({
     'low': 'Basso (1-18)'
   }
 
-  const targetDesc = targetDescriptions[betTarget] || 'Rosso'
+  const targetDesc = targetDescriptions[sessionData?.session?.config?.betTarget || 'red'] || 'Rosso'
 
   const handleSubmit = () => {
     const number = parseInt(inputNumber)

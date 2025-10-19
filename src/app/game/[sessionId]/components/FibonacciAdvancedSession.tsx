@@ -48,9 +48,6 @@ export default function FibonacciAdvancedSession({
     )
   }
 
-  const isManualMethod = sessionData?.session?.config?.manualBetInput === true
-  const betTarget = sessionData?.session?.config?.betTarget || 'column_1'
-
   const targetDescriptions: Record<string, string> = {
     'column_1': '1ª Colonna (1,4,7,10,13,16,19,22,25,28,31,34)',
     'column_2': '2ª Colonna (2,5,8,11,14,17,20,23,26,29,32,35)',

@@ -31,9 +31,8 @@ export default function MartingaleSession({
 }: MartingaleSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
 
-  const betTarget = sessionData?.session?.config?.betTarget || 'red'
   // Auto-select target for Martingale (always automatic)
-  const [selectedBets, setSelectedBets] = useState<string[]>([betTarget])
+  const [selectedBets, setSelectedBets] = useState<string[]>([sessionData?.session?.config?.betTarget || 'red'])
 
   const handleBetToggle = (betType: string) => {
     setSelectedBets(prev =>
@@ -42,8 +41,6 @@ export default function MartingaleSession({
         : [...prev, betType]
     )
   }
-
-  const betTarget = sessionData?.session?.config?.betTarget || 'red'
 
   const targetDescriptions: Record<string, string> = {
     'red': 'Rosso',
@@ -54,7 +51,7 @@ export default function MartingaleSession({
     'low': 'Basso (1-18)'
   }
 
-  const targetDesc = targetDescriptions[betTarget] || 'Rosso'
+  const targetDesc = targetDescriptions[sessionData?.session?.config?.betTarget || 'red'] || 'Rosso'
 
   const handleSubmit = () => {
     const number = parseInt(inputNumber)
