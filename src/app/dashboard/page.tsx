@@ -1,11 +1,12 @@
 /**
- * Dashboard Page - STATIC VERSION NO API LOOPS
+ * Dashboard Page - MODULAR ARCHITECTURE VERSION
  */
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { STATIC_GAMES, STATIC_METHODS } from '@/shared/data/static-games'
+import { useGames } from '@/modules/games/infrastructure/hooks/useGames'
+import { useMethods } from '@/modules/methods/infrastructure/hooks/useMethods'
 import { MethodConfigurationModal } from '@/shared/ui/components/MethodConfigurationModal'
 
 interface MethodConfig {
@@ -30,6 +31,14 @@ export default function DashboardPage() {
   const [methodConfig, setMethodConfig] = useState<MethodConfig | null>(null)
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  // Use modular architecture hooks
+  const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({ activeOnly: true })
+  const { methods, loading: methodsLoading, error: methodsError, userPackage } = useMethods({
+    userId: 'demo-user',
+    gameTypeId: selectedGameId || undefined,
+    activeOnly: true
+  })
 
   // Load active sessions from localStorage on mount
   useEffect(() => {
@@ -67,14 +76,6 @@ export default function DashboardPage() {
 
     loadActiveSessions()
   }, [])
-
-  // NO API CALLS - ONLY STATIC DATA!
-  const gameTypes = STATIC_GAMES
-  const methods = STATIC_METHODS
-  const gamesLoading = false
-  const methodsLoading = false
-  const gamesError = null
-  const methodsError = null
 
   const selectedGame = gameTypes.find(g => g.id.value === selectedGameId)
   const selectedMethod = methods.find(m => m.id.value === selectedMethodId)
@@ -167,8 +168,15 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="text-green-500 text-2xl">🎮</div>
               <div>
-                <h2 className="text-green-500 font-semibold">Games Module Attivo!</h2>
-                <p className="text-sm text-gray-300">European Roulette disponibile. Seleziona un gioco e un metodo per iniziare.</p>
+                <h2 className="text-green-500 font-semibold">
+                  {gamesLoading ? 'Caricando Games Module...' : 'Architettura Modulare Attiva!'}
+                </h2>
+                <p className="text-sm text-gray-300">
+                  {gamesLoading
+                    ? 'Verifica connessione ai moduli...'
+                    : `${gameTypes.length} giochi e ${methods.length} metodi disponibili.`
+                  }
+                </p>
               </div>
             </div>
           </div>
@@ -179,24 +187,37 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-yellow-500 font-semibold">Piano Attuale</h3>
               </div>
-              <div className="text-2xl font-bold text-green-400 mb-2">Gratuito</div>
-              <p className="text-sm text-gray-300">Fibonacci + Roulette Europea</p>
+              <div className="text-2xl font-bold text-green-400 mb-2 capitalize">
+                {methodsLoading ? '...' : userPackage}
+              </div>
+              <p className="text-sm text-gray-300">
+                {methodsLoading
+                  ? 'Verificando permessi...'
+                  : `${methods.length} metodi disponibili`
+                }
+              </p>
             </div>
 
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-yellow-500 font-semibold">Sessioni Oggi</h3>
               </div>
-              <div className="text-2xl font-bold text-white mb-2">0</div>
-              <p className="text-sm text-gray-300">Limite: 1 simultanea</p>
+              <div className="text-2xl font-bold text-white mb-2">{activeSessions.length}</div>
+              <p className="text-sm text-gray-300">
+                {userPackage === 'free' ? 'Limite: 1 simultanea' : 'Limite: 3 simultanee'}
+              </p>
             </div>
 
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-yellow-500 font-semibold">Puntate Oggi</h3>
+                <h3 className="text-yellow-500 font-semibold">Giochi Disponibili</h3>
               </div>
-              <div className="text-2xl font-bold text-white mb-2">0 / 50</div>
-              <p className="text-sm text-gray-300">Limite giornaliero</p>
+              <div className="text-2xl font-bold text-white mb-2">
+                {gamesLoading ? '...' : gameTypes.length}
+              </div>
+              <p className="text-sm text-gray-300">
+                {gamesLoading ? 'Caricando...' : 'Games Module connesso'}
+              </p>
             </div>
           </div>
 
@@ -266,11 +287,20 @@ export default function DashboardPage() {
             {gamesLoading ? (
               <div className="bg-gray-800 rounded-lg p-6 text-center">
                 <div className="text-yellow-500 text-2xl mb-2">⏳</div>
-                <p>Caricando giochi disponibili...</p>
+                <p>Caricando giochi via Games Module...</p>
+                <p className="text-xs text-gray-400 mt-2">Se fallisce, useremo fallback automatico</p>
               </div>
             ) : gamesError ? (
+              <div className="bg-orange-600/10 border border-orange-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-orange-500">⚠️</div>
+                  <p className="text-orange-400">API temporaneamente non disponibile</p>
+                </div>
+                <p className="text-sm text-gray-300">Usando dati fallback del Games Module. {gameTypes.length} giochi disponibili.</p>
+              </div>
+            ) : gameTypes.length === 0 ? (
               <div className="bg-red-600/10 border border-red-500/30 rounded-lg p-4">
-                <p className="text-red-400">Errore nel caricamento dei giochi: {gamesError}</p>
+                <p className="text-red-400">Nessun gioco disponibile</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -304,11 +334,20 @@ export default function DashboardPage() {
               {methodsLoading ? (
                 <div className="bg-gray-800 rounded-lg p-6 text-center">
                   <div className="text-yellow-500 text-2xl mb-2">⏳</div>
-                  <p>Caricando metodi disponibili...</p>
+                  <p>Caricando metodi via Methods Module...</p>
+                  <p className="text-xs text-gray-400 mt-2">Verificando permessi utente...</p>
                 </div>
               ) : methodsError ? (
+                <div className="bg-orange-600/10 border border-orange-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="text-orange-500">⚠️</div>
+                    <p className="text-orange-400">Methods API temporaneamente non disponibile</p>
+                  </div>
+                  <p className="text-sm text-gray-300">Usando dati fallback. {methods.length} metodi disponibili per il piano {userPackage}.</p>
+                </div>
+              ) : methods.length === 0 ? (
                 <div className="bg-red-600/10 border border-red-500/30 rounded-lg p-4">
-                  <p className="text-red-400">Errore nel caricamento dei metodi: {methodsError}</p>
+                  <p className="text-red-400">Nessun metodo disponibile per il gioco selezionato</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,12 +367,18 @@ export default function DashboardPage() {
                           <span className="text-xs bg-orange-600 text-white px-2 py-1 rounded">
                             {method.category.toUpperCase()}
                           </span>
+                          <span className="text-xs bg-green-600 text-white px-2 py-1 rounded ml-1">
+                            {method.requiredPackage.toUpperCase()}
+                          </span>
                         </div>
                         <div className="text-2xl">📈</div>
                       </div>
                       <p className="text-sm text-gray-300 mb-3">{method.description}</p>
                       <div className="text-xs text-gray-400">
                         ✅ Compatibile con {selectedGame?.displayName}
+                        {method.requiredPackage !== userPackage && (
+                          <span className="ml-2 text-yellow-400">⚠️ Richiede piano {method.requiredPackage}</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -470,7 +515,7 @@ export default function DashboardPage() {
           method={{
             id: selectedMethod.id.value,
             displayName: selectedMethod.displayName,
-            explanation: selectedMethod.explanation,
+            explanation: selectedMethod.explanation || selectedMethod.description,
             configSchema: selectedMethod.configSchema,
             defaultConfig: selectedMethod.defaultConfig
           }}
