@@ -17,6 +17,7 @@ import MartingaleSession from './components/MartingaleSession'
 import JamesBondSession from './components/JamesBondSession'
 import GenericSession from './components/GenericSession'
 import { RouletteGameEngine, BetType, type BetInput, createEuropeanRouletteConfig } from '@/modules/games/domain/services/RouletteGameEngine'
+import { runRouletteValidation } from '@/utils/rouletteValidator'
 
 // Initialize the roulette game engine
 const rouletteConfig = createEuropeanRouletteConfig()
@@ -120,8 +121,11 @@ export default function GameSessionPage() {
   const [lastResult, setLastResult] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
 
-  // Load session data
+  // Load session data and validate roulette logic
   useEffect(() => {
+    // Validate roulette logic on component mount
+    runRouletteValidation()
+
     if (sessionId) {
       loadSessionData()
     }
@@ -224,18 +228,14 @@ export default function GameSessionPage() {
         // Use selected bets from roulette table
         const winningBets = checkWinningBetsWithEngine(number, selectedBets, currentBetAmount)
         won = winningBets.length > 0
-        console.log(`🎯 ROULETTE ENGINE - Number: ${number}`)
-        console.log(`🎯 Selected Bets: [${selectedBets.join(', ')}]`)
-        console.log(`🎯 Winning Bets: [${winningBets.join(', ')}]`)
-        console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
+        console.log(`🎯 ROULETTE ENGINE - Number: ${number}, Selected: [${selectedBets.join(', ')}], Winners: [${winningBets.join(', ')}], Result: ${won ? 'WON' : 'LOST'}`)
       } else {
         // Fallback: use method's default target
         const betTarget = sessionData.session.config.betTarget || 'column_1'
         const fallbackBets = [betTarget]
         const winningBets = checkWinningBetsWithEngine(number, fallbackBets, currentBetAmount)
         won = winningBets.length > 0
-        console.log(`🎯 FALLBACK ENGINE - Number: ${number}, Target: ${betTarget}`)
-        console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
+        console.log(`🎯 FALLBACK ENGINE - Number: ${number}, Target: ${betTarget}, Result: ${won ? 'WON' : 'LOST'}`)
       }
 
       console.log(`\n🎲 FINAL RESULT: ${number} (${gameResult.color}) - Bet: €${currentBetAmount} - ${won ? '✅ WON' : '❌ LOST'}\n`)
