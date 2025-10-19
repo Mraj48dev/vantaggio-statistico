@@ -16,73 +16,11 @@ import FibonacciAdvancedSession from './components/FibonacciAdvancedSession'
 import MartingaleSession from './components/MartingaleSession'
 import JamesBondSession from './components/JamesBondSession'
 import GenericSession from './components/GenericSession'
-import { RouletteGameEngine, BetType, type BetInput, createEuropeanRouletteConfig } from '@/modules/games/domain/services/RouletteGameEngine'
-import { runRouletteValidation } from '@/utils/rouletteValidator'
+import { SimpleRouletteEngine } from '@/modules/games/domain/services/SimpleRouletteEngine'
 
-// Initialize the roulette game engine
-const rouletteConfig = createEuropeanRouletteConfig()
-const rouletteEngine = new RouletteGameEngine(rouletteConfig)
-
-// Helper function to convert UI bet names to BetType enum
-const mapUIBetToBetType = (uiBet: string): BetType | null => {
-  const betMap: Record<string, BetType> = {
-    'red': BetType.RED,
-    'black': BetType.BLACK,
-    'even': BetType.EVEN,
-    'odd': BetType.ODD,
-    'high': BetType.HIGH,
-    'low': BetType.LOW,
-    'dozen_1': BetType.DOZEN_1,
-    'dozen_2': BetType.DOZEN_2,
-    'dozen_3': BetType.DOZEN_3,
-    'column_1': BetType.COLUMN_1,
-    'column_2': BetType.COLUMN_2,
-    'column_3': BetType.COLUMN_3
-  }
-  return betMap[uiBet] || null
-}
-
-// Helper function to check if any of the selected bets won
-const checkWinningBetsWithEngine = (number: number, selectedBets: string[], betAmount: number = 1): string[] => {
-  const bets: BetInput[] = selectedBets
-    .map(uiBet => {
-      const betType = mapUIBetToBetType(uiBet)
-      if (!betType) return null
-      return { type: betType, amount: betAmount }
-    })
-    .filter((bet): bet is BetInput => bet !== null)
-
-  if (bets.length === 0) return []
-
-  const spinResult = rouletteEngine.calculateResultsForNumber(bets, number)
-  if (!spinResult.isSuccess) return []
-
-  const winningBets: string[] = []
-  spinResult.value.betResults.forEach(result => {
-    if (result.isWinning) {
-      // Convert back to UI format
-      const uiBetName = Object.entries({
-        'red': BetType.RED,
-        'black': BetType.BLACK,
-        'even': BetType.EVEN,
-        'odd': BetType.ODD,
-        'high': BetType.HIGH,
-        'low': BetType.LOW,
-        'dozen_1': BetType.DOZEN_1,
-        'dozen_2': BetType.DOZEN_2,
-        'dozen_3': BetType.DOZEN_3,
-        'column_1': BetType.COLUMN_1,
-        'column_2': BetType.COLUMN_2,
-        'column_3': BetType.COLUMN_3
-      }).find(([_, betType]) => betType === result.bet.type)?.[0]
-
-      if (uiBetName) {
-        winningBets.push(uiBetName)
-      }
-    }
-  })
-
-  return winningBets
+// Simple helper function to check if any of the selected bets won
+const checkWinningBets = (number: number, selectedBets: string[]): string[] => {
+  return selectedBets.filter(betType => SimpleRouletteEngine.checkWin(betType, number))
 }
 
 interface GameSessionData {
@@ -223,26 +161,25 @@ export default function GameSessionPage() {
       const isManualMethod = sessionData.session.config.manualBetInput === true ||
         (sessionData.session.config.manualBetInput !== false && methodId === 'fibonacci_advanced')
 
-      // Use RouletteGameEngine for ALL win/loss determination
+      // Use SimpleRouletteEngine for ALL win/loss determination
       if (selectedBets && selectedBets.length > 0) {
         // Use selected bets from roulette table
-        const winningBets = checkWinningBetsWithEngine(number, selectedBets, currentBetAmount)
+        const winningBets = checkWinningBets(number, selectedBets)
         won = winningBets.length > 0
-        console.log(`🎯 ROULETTE ENGINE - Number: ${number}, Selected: [${selectedBets.join(', ')}], Winners: [${winningBets.join(', ')}], Result: ${won ? 'WON' : 'LOST'}`)
+        console.log(`🎯 SIMPLE ENGINE - Number: ${number}, Selected: [${selectedBets.join(', ')}], Winners: [${winningBets.join(', ')}], Result: ${won ? 'WON' : 'LOST'}`)
       } else {
         // Fallback: use method's default target
         const betTarget = sessionData.session.config.betTarget || 'column_1'
         const fallbackBets = [betTarget]
-        const winningBets = checkWinningBetsWithEngine(number, fallbackBets, currentBetAmount)
-        won = winningBets.length > 0
-        console.log(`🎯 FALLBACK ENGINE - Number: ${number}, Target: ${betTarget}, Result: ${won ? 'WON' : 'LOST'}`)
+        won = SimpleRouletteEngine.checkWin(betTarget, number)
+        console.log(`🎯 FALLBACK SIMPLE - Number: ${number}, Target: ${betTarget}, Result: ${won ? 'WON' : 'LOST'}`)
       }
 
       console.log(`\n🎲 FINAL RESULT: ${number} (${gameResult.color}) - Bet: €${currentBetAmount} - ${won ? '✅ WON' : '❌ LOST'}\n`)
 
       // Alert dettagliato
       const alertMessage = won
-        ? `✅ HAI VINTO!\nNumero: ${number}\nPuntate vincenti: ${selectedBets && selectedBets.length > 0 ? checkWinningBetsWithEngine(number, selectedBets, currentBetAmount).join(', ') : 'Nessuna'}`
+        ? `✅ HAI VINTO!\nNumero: ${number}\nPuntate vincenti: ${selectedBets && selectedBets.length > 0 ? checkWinningBets(number, selectedBets).join(', ') : 'Nessuna'}`
         : `❌ Hai perso\nNumero: ${number}\nPuntate: ${selectedBets && selectedBets.length > 0 ? selectedBets.join(', ') : 'Nessuna'}`
 
       // Update session data locally (demo simulation)
