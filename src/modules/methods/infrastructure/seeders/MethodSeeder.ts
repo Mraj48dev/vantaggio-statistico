@@ -146,7 +146,7 @@ export class DefaultMethodSeeder implements MethodSeeder {
         requiredPackage: 'premium',
         configSchema: {
           compatibleGames: ['european_roulette', 'american_roulette'],
-          requiredFields: ['baseBet', 'stopLoss', 'betTarget'],
+          requiredFields: ['baseBet', 'stopLoss', 'betTarget', 'manualBetInput'],
           fields: {
             baseBet: {
               type: 'number',
@@ -179,13 +179,20 @@ export class DefaultMethodSeeder implements MethodSeeder {
                 { value: 'dozen_3', label: '3ª Dozzina (25-36)' }
               ],
               default: 'column_1'
+            },
+            manualBetInput: {
+              type: 'boolean',
+              label: 'Input Manuale Puntata',
+              description: 'Permette di scegliere manualmente la puntata ad ogni round',
+              default: true
             }
           }
         },
         defaultConfig: {
           baseBet: 10,
           stopLoss: 100,
-          betTarget: 'column_1'
+          betTarget: 'column_1',
+          manualBetInput: true
         },
         algorithm: 'fibonacci_advanced_customizable',
         isActive: true,
