@@ -88,7 +88,7 @@ export default function FibonacciAdvancedSession({
       return
     }
 
-    onSubmitResult(number, betAmount)
+    onSubmitResult(number, betAmount, selectedBets)
 
     // Clear inputs for next round
     setInputNumber('')
