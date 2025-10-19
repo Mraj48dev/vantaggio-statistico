@@ -49,8 +49,40 @@ export function useGames(input: GetGameTypesUseCaseInput = {}) {
     loading: true,
     error: null
   })
+  const [retryCount, setRetryCount] = useState(0)
+  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false)
+
+  const MAX_RETRIES = 1 // Solo 1 retry, poi fallback immediato
+  const CIRCUIT_BREAKER_TIMEOUT = 30000 // 30 secondi prima di riprovare
 
   const loadGameTypes = useCallback(async () => {
+    // Circuit breaker: se aperto, usa subito fallback
+    if (circuitBreakerOpen) {
+      console.log('Circuit breaker open, using immediate fallback')
+      setState({
+        gameTypes: [{
+          id: { value: 'european_roulette' },
+          name: 'european_roulette',
+          displayName: 'Roulette Europea (Fallback)',
+          category: 'table',
+          config: { type: 'european', minBet: 1, maxBet: 100 },
+          isActive: true,
+          sortOrder: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          getMinBet: () => 1,
+          getMaxBet: () => 100,
+          isRouletteGame: () => true,
+          isBlackjackGame: () => false,
+          getRouletteConfig: () => ({ type: 'european', minBet: 1, maxBet: 100 }),
+          getBlackjackConfig: () => null
+        }] as any,
+        loading: false,
+        error: null
+      })
+      return
+    }
+
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
@@ -65,20 +97,39 @@ export function useGames(input: GetGameTypesUseCaseInput = {}) {
 
         // Call API endpoint with timeout
         const controller = new AbortController()
-        setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        setTimeout(() => controller.abort(), 3000) // Ridotto a 3 secondi
 
         const response = await fetch(`/api/games?${params.toString()}`, {
-          signal: controller.signal
+          signal: controller.signal,
+          // Aggiungi cache-control per evitare richieste multiple
+          cache: 'force-cache'
         })
         const data = await response.json()
 
         if (response.ok && data.success) {
           gameTypes = data.data.gameTypes
+          // Reset retry count on success
+          setRetryCount(0)
         } else {
           throw new Error('API failed, using fallback')
         }
       } catch (apiError) {
         console.warn('Games API failed, using static fallback:', apiError)
+
+        // Increment retry count
+        const newRetryCount = retryCount + 1
+        setRetryCount(newRetryCount)
+
+        // Se troppi errori, apri circuit breaker
+        if (newRetryCount >= MAX_RETRIES) {
+          console.warn('Max retries reached, opening circuit breaker')
+          setCircuitBreakerOpen(true)
+          // Chiudi circuit breaker dopo timeout
+          setTimeout(() => {
+            setCircuitBreakerOpen(false)
+            setRetryCount(0)
+          }, CIRCUIT_BREAKER_TIMEOUT)
+        }
 
         // Static fallback data
         gameTypes = [{
@@ -153,11 +204,14 @@ export function useGames(input: GetGameTypesUseCaseInput = {}) {
         error: null // Don't show error, just use fallback
       })
     }
-  }, [input])
+  }, [input, retryCount]) // Solo aggiungi retryCount come dipendenza
 
   useEffect(() => {
-    loadGameTypes()
-  }, [loadGameTypes])
+    // Solo esegui se non abbiamo già dati o se è la prima chiamata
+    if (state.gameTypes.length === 0 && !circuitBreakerOpen) {
+      loadGameTypes()
+    }
+  }, [loadGameTypes, state.gameTypes.length, circuitBreakerOpen])
 
   return {
     ...state,

@@ -30,10 +30,46 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
   const [error, setError] = useState<string | null>(null)
   const [userPackage, setUserPackage] = useState<string>('free')
   const [totalCount, setTotalCount] = useState(0)
+  const [retryCount, setRetryCount] = useState(0)
+  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false)
 
   const { userId = 'demo-user', gameTypeId, activeOnly = true } = options
+  const MAX_RETRIES = 1 // Solo 1 retry
+  const CIRCUIT_BREAKER_TIMEOUT = 30000 // 30 secondi
 
   const fetchMethods = async () => {
+    // Circuit breaker check
+    if (circuitBreakerOpen) {
+      console.log('Methods circuit breaker open, using immediate fallback')
+      setMethods([{
+        id: { value: 'fibonacci' },
+        name: 'fibonacci',
+        displayName: 'Fibonacci (Fallback)',
+        description: 'Metodo base Fibonacci',
+        explanation: 'Strategia progressiva sicura',
+        category: 'progressive',
+        requiredPackage: 'free',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet'],
+          fields: {
+            baseBet: { type: 'number', label: 'Puntata', min: 1, max: 100, default: 1 }
+          }
+        },
+        defaultConfig: { baseBet: 1 },
+        algorithm: 'fibonacci',
+        isActive: true,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }] as any)
+      setUserPackage('free')
+      setTotalCount(1)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -43,7 +79,7 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
       try {
         // Try API call with timeout
         const controller = new AbortController()
-        setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        setTimeout(() => controller.abort(), 3000) // Ridotto a 3 secondi
 
         const response = await fetch('/api/methods', {
           method: 'POST',
@@ -55,16 +91,33 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
             gameTypeId,
             activeOnly
           }),
-          signal: controller.signal
+          signal: controller.signal,
+          cache: 'force-cache'
         })
 
         if (response.ok) {
           methodsData = await response.json()
+          setRetryCount(0) // Reset on success
         } else {
           throw new Error(`HTTP ${response.status}`)
         }
       } catch (apiError) {
         console.warn('Methods API failed, using static fallback:', apiError)
+
+        // Increment retry count
+        const newRetryCount = retryCount + 1
+        setRetryCount(newRetryCount)
+
+        // Se troppi errori, apri circuit breaker
+        if (newRetryCount >= MAX_RETRIES) {
+          console.warn('Max retries reached for methods, opening circuit breaker')
+          setCircuitBreakerOpen(true)
+          // Chiudi circuit breaker dopo timeout
+          setTimeout(() => {
+            setCircuitBreakerOpen(false)
+            setRetryCount(0)
+          }, CIRCUIT_BREAKER_TIMEOUT)
+        }
 
         // Static fallback data
         methodsData = {
@@ -148,8 +201,11 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
   }
 
   useEffect(() => {
-    fetchMethods()
-  }, [userId, gameTypeId, activeOnly])
+    // Solo esegui se non abbiamo già dati o se è la prima chiamata
+    if (methods.length === 0 && !circuitBreakerOpen) {
+      fetchMethods()
+    }
+  }, [userId, gameTypeId, activeOnly, methods.length, circuitBreakerOpen])
 
   const refreshMethods = async () => {
     await fetchMethods()
