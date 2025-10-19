@@ -61,8 +61,13 @@ export default function GameSessionPage() {
 
   // Load session data and validate roulette logic
   useEffect(() => {
-    // Validate roulette logic on component mount
-    runRouletteValidation()
+    // Validate SimpleRouletteEngine logic on component mount
+    const testResult = SimpleRouletteEngine.runTests()
+    if (testResult.passed) {
+      console.log('✅ SimpleRouletteEngine validation passed!')
+    } else {
+      console.error('❌ SimpleRouletteEngine validation failed:', testResult.errors)
+    }
 
     if (sessionId) {
       loadSessionData()
