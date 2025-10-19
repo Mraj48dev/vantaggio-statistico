@@ -31,7 +31,14 @@ export default function FibonacciAdvancedSession({
 }: FibonacciAdvancedSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
   const [inputAmount, setInputAmount] = useState<string>('')
-  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const isManualMethod = sessionData?.session?.config?.manualBetInput === true
+  const betTarget = sessionData?.session?.config?.betTarget || 'column_1'
+
+  // Auto-select bet based on method target for automatic methods
+  const [selectedBets, setSelectedBets] = useState<string[]>(
+    isManualMethod ? [] : [betTarget]
+  )
 
   const handleBetToggle = (betType: string) => {
     setSelectedBets(prev =>
@@ -104,18 +111,17 @@ export default function FibonacciAdvancedSession({
 
             {isManualMethod ? (
               <>
-                <div className="text-lg text-yellow-400 font-semibold mb-3">{targetDesc}</div>
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-2">
                   <div className="text-sm text-yellow-300 mb-1">Suggerimento Fibonacci:</div>
                   <div className="text-2xl font-bold text-white">€{nextBetSuggestion.amount}</div>
                 </div>
-                <div className="text-sm text-gray-300">Puoi puntare qualsiasi importo su questo target</div>
+                <div className="text-sm text-gray-300">Seleziona le puntate desiderate nella tabella sottostante</div>
               </>
             ) : (
               <>
                 <div className="text-4xl font-bold text-white mb-2">€{nextBetSuggestion.amount}</div>
-                <div className="text-lg text-yellow-400 font-semibold mb-2">{targetDesc}</div>
                 <div className="text-sm text-gray-300">{nextBetSuggestion.reason}</div>
+                <div className="text-sm text-yellow-300 mt-2">🎯 Puntata automatica su: {targetDesc}</div>
               </>
             )}
           </div>
@@ -127,7 +133,7 @@ export default function FibonacciAdvancedSession({
         sessionData={sessionData}
         selectedBets={selectedBets}
         onBetToggle={handleBetToggle}
-        disabled={processing}
+        disabled={processing || !isManualMethod}
         methodId="fibonacci_advanced"
       />
 

@@ -30,7 +30,10 @@ export default function MartingaleSession({
   getNumberColor
 }: MartingaleSessionProps) {
   const [inputNumber, setInputNumber] = useState<string>('')
-  const [selectedBets, setSelectedBets] = useState<string[]>([])
+
+  const betTarget = sessionData?.session?.config?.betTarget || 'red'
+  // Auto-select target for Martingale (always automatic)
+  const [selectedBets, setSelectedBets] = useState<string[]>([betTarget])
 
   const handleBetToggle = (betType: string) => {
     setSelectedBets(prev =>
@@ -81,7 +84,6 @@ export default function MartingaleSession({
           <div className="text-center">
             <div className="text-red-500 font-bold text-lg mb-2">🎯 PROSSIMA PUNTATA MARTINGALE</div>
             <div className="text-4xl font-bold text-white mb-2">€{nextBetSuggestion.amount}</div>
-            <div className="text-lg text-red-400 font-semibold mb-2">{targetDesc} (Paga 1:1)</div>
             <div className="text-sm text-gray-300">{nextBetSuggestion.reason}</div>
           </div>
         </div>
@@ -92,7 +94,7 @@ export default function MartingaleSession({
         sessionData={sessionData}
         selectedBets={selectedBets}
         onBetToggle={handleBetToggle}
-        disabled={processing}
+        disabled={true}
         methodId="martingale"
       />
 

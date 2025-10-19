@@ -68,7 +68,6 @@ export default function FibonacciSession({
           <div className="text-center">
             <div className="text-yellow-500 font-bold text-lg mb-2">🎯 PROSSIMA PUNTATA</div>
             <div className="text-4xl font-bold text-white mb-2">€{nextBetSuggestion.amount}</div>
-            <div className="text-lg text-yellow-400 font-semibold mb-2">Prima Colonna (1,4,7,10,13,16,19,22,25,28,31,34)</div>
             <div className="text-sm text-gray-300">{nextBetSuggestion.reason}</div>
           </div>
         </div>

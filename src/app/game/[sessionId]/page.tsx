@@ -153,12 +153,12 @@ export default function GameSessionPage() {
       const isManualMethod = sessionData.session.config.manualBetInput === true ||
         (sessionData.session.config.manualBetInput !== false && methodId === 'fibonacci_advanced')
 
-      // Use selectedBets for manual methods, fallback to method-specific logic
-      if (isManualMethod && selectedBets && selectedBets.length > 0) {
-        // Use actual roulette table selections
+      // SEMPRE usa le selezioni dei pulsanti della roulette table
+      if (selectedBets && selectedBets.length > 0) {
+        // Use actual roulette table selections (both manual and automatic methods)
         const winningBets = checkWinningBets(number, selectedBets)
         won = winningBets.length > 0
-        console.log(`Manual betting - Selected: [${selectedBets.join(', ')}], Winning: [${winningBets.join(', ')}]`)
+        console.log(`Roulette table betting - Selected: [${selectedBets.join(', ')}], Winning: [${winningBets.join(', ')}]`)
       } else if (methodId === 'fibonacci_advanced') {
         // For Fibonacci Advanced, get the bet target from config
         const betTarget = sessionData.session.config.betTarget || 'column_1'
@@ -187,8 +187,9 @@ export default function GameSessionPage() {
         // James Bond multiple bet logic - simplified to check if any bet wins
         won = number === 0 || (number >= 13 && number <= 18) || (number >= 19 && number <= 36)
       } else {
-        // Default for other methods - use betTarget from config
+        // Fallback for methods without roulette table selections
         const betTarget = sessionData.session.config.betTarget || 'red'
+        console.log(`Fallback logic used for betTarget: ${betTarget}`)
 
         switch (betTarget) {
           case 'red':
