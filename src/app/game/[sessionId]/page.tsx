@@ -16,6 +16,7 @@ import FibonacciAdvancedSession from './components/FibonacciAdvancedSession'
 import MartingaleSession from './components/MartingaleSession'
 import JamesBondSession from './components/JamesBondSession'
 import GenericSession from './components/GenericSession'
+import { checkWinningBets } from './components/RouletteTable'
 
 interface GameSessionData {
   session: {
@@ -134,7 +135,7 @@ export default function GameSessionPage() {
     return methodInfoMap[methodId] || { name: 'Metodo Sconosciuto', description: 'European Roulette' }
   }
 
-  const processBetResult = async (number: number, actualBetAmount?: number) => {
+  const processBetResult = async (number: number, actualBetAmount?: number, selectedBets?: string[]) => {
     if (!sessionData || !sessionData.nextBetSuggestion) return
 
     try {
@@ -149,8 +150,16 @@ export default function GameSessionPage() {
       let won = false
       const methodId = sessionData.session.methodId
       const currentBetAmount = actualBetAmount || sessionData.nextBetSuggestion.amount
+      const isManualMethod = sessionData.session.config.manualBetInput === true ||
+        (sessionData.session.config.manualBetInput !== false && methodId === 'fibonacci_advanced')
 
-      if (methodId === 'fibonacci_advanced') {
+      // Use selectedBets for manual methods, fallback to method-specific logic
+      if (isManualMethod && selectedBets && selectedBets.length > 0) {
+        // Use actual roulette table selections
+        const winningBets = checkWinningBets(number, selectedBets)
+        won = winningBets.length > 0
+        console.log(`Manual betting - Selected: [${selectedBets.join(', ')}], Winning: [${winningBets.join(', ')}]`)
+      } else if (methodId === 'fibonacci_advanced') {
         // For Fibonacci Advanced, get the bet target from config
         const betTarget = sessionData.session.config.betTarget || 'column_1'
 

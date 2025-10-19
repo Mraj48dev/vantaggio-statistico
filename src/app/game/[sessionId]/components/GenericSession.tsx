@@ -15,7 +15,7 @@ import RouletteTable from './RouletteTable'
 interface GenericSessionProps {
   sessionData: any
   nextBetSuggestion: any
-  onSubmitResult: (number: number) => void
+  onSubmitResult: (number: number, amount?: number, selectedBets?: string[]) => void
   processing: boolean
   lastResult: number | null
   getNumberColor: (number: number) => string
@@ -73,7 +73,7 @@ export default function GenericSession({
       return
     }
 
-    onSubmitResult(number)
+    onSubmitResult(number, undefined, selectedBets)
 
     // Clear input for next round
     setInputNumber('')

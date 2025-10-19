@@ -68,6 +68,40 @@ const getNumberColor = (number: number): 'red' | 'black' | 'green' => {
   return redNumbers.includes(number) ? 'red' : 'black'
 }
 
+// Utility function per determinare se un numero vince con le puntate selezionate
+export const checkWinningBets = (number: number, selectedBets: string[]): string[] => {
+  const winners: string[] = []
+
+  selectedBets.forEach(bet => {
+    // Numeri diretti
+    if (bet.startsWith('number_')) {
+      const betNumber = parseInt(bet.replace('number_', ''))
+      if (betNumber === number) winners.push(bet)
+      return
+    }
+
+    // Even-Money bets
+    if (bet === 'red' && getNumberColor(number) === 'red') winners.push(bet)
+    if (bet === 'black' && getNumberColor(number) === 'black') winners.push(bet)
+    if (bet === 'odd' && number > 0 && number % 2 === 1) winners.push(bet)
+    if (bet === 'even' && number > 0 && number % 2 === 0) winners.push(bet)
+    if (bet === 'low' && number >= 1 && number <= 18) winners.push(bet)
+    if (bet === 'high' && number >= 19 && number <= 36) winners.push(bet)
+
+    // Dozzine
+    if (bet === 'dozen_1' && number >= 1 && number <= 12) winners.push(bet)
+    if (bet === 'dozen_2' && number >= 13 && number <= 24) winners.push(bet)
+    if (bet === 'dozen_3' && number >= 25 && number <= 36) winners.push(bet)
+
+    // Colonne
+    if (bet === 'column_1' && [1,4,7,10,13,16,19,22,25,28,31,34].includes(number)) winners.push(bet)
+    if (bet === 'column_2' && [2,5,8,11,14,17,20,23,26,29,32,35].includes(number)) winners.push(bet)
+    if (bet === 'column_3' && [3,6,9,12,15,18,21,24,27,30,33,36].includes(number)) winners.push(bet)
+  })
+
+  return winners
+}
+
 export default function RouletteTable({
   sessionData,
   selectedBets,
@@ -101,21 +135,16 @@ export default function RouletteTable({
       <div key="zero-row" className="flex justify-center mb-2">
         <div className="relative">
           <button
+            onClick={() => !shouldDisable && onBetToggle('number_0')}
             className={`w-16 h-12 rounded border-2 font-bold text-white transition-all ${
               getNumberColor(0) === 'green' ? 'bg-green-600 border-green-400' : ''
-            } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+            } ${
+              selectedBets.includes('number_0') ? 'ring-4 ring-yellow-400 scale-110' : ''
+            } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}`}
             disabled={shouldDisable}
           >
             0
           </button>
-          {!shouldDisable && (
-            <input
-              type="checkbox"
-              className="absolute -top-1 -right-1 w-4 h-4"
-              checked={selectedBets.includes('number_0')}
-              onChange={() => onBetToggle('number_0')}
-            />
-          )}
         </div>
       </div>
     )
@@ -130,23 +159,18 @@ export default function RouletteTable({
         rowNumbers.push(
           <div key={number} className="relative">
             <button
+              onClick={() => !shouldDisable && onBetToggle(`number_${number}`)}
               className={`w-12 h-12 rounded border font-bold text-white text-sm transition-all ${
                 color === 'red' ? 'bg-red-600 border-red-400' :
                 color === 'black' ? 'bg-gray-800 border-gray-600' :
                 'bg-green-600 border-green-400'
-              } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+              } ${
+                selectedBets.includes(`number_${number}`) ? 'ring-2 ring-yellow-400 scale-110' : ''
+              } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}`}
               disabled={shouldDisable}
             >
               {number}
             </button>
-            {!shouldDisable && (
-              <input
-                type="checkbox"
-                className="absolute -top-1 -right-1 w-3 h-3"
-                checked={selectedBets.includes(`number_${number}`)}
-                onChange={() => onBetToggle(`number_${number}`)}
-              />
-            )}
           </div>
         )
       }
@@ -171,24 +195,19 @@ export default function RouletteTable({
             {ROULETTE_BETS.evenMoney.map((bet) => (
               <div key={bet.id} className="relative">
                 <button
+                  onClick={() => !shouldDisable && onBetToggle(bet.id)}
                   className={`w-full p-2 rounded border-2 font-semibold transition-all text-xs ${
                     bet.id === 'red' ? 'bg-red-500/20 border-red-500 text-red-400' :
                     bet.id === 'black' ? 'bg-gray-500/20 border-gray-500 text-gray-300' :
                     'bg-blue-500/20 border-blue-500 text-blue-400'
-                  } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+                  } ${
+                    selectedBets.includes(bet.id) ? 'ring-2 ring-yellow-400 scale-105' : ''
+                  } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}`}
                   disabled={shouldDisable}
                 >
                   <div className="text-xs font-medium">{bet.label}</div>
                   <div className="text-xs opacity-75">{bet.payout}</div>
                 </button>
-                {!shouldDisable && (
-                  <input
-                    type="checkbox"
-                    className="absolute -top-1 -right-1 w-3 h-3"
-                    checked={selectedBets.includes(bet.id)}
-                    onChange={() => onBetToggle(bet.id)}
-                  />
-                )}
               </div>
             ))}
           </div>
@@ -201,22 +220,15 @@ export default function RouletteTable({
             {ROULETTE_BETS.dozens.map((bet) => (
               <div key={bet.id} className="relative">
                 <button
+                  onClick={() => !shouldDisable && onBetToggle(bet.id)}
                   className={`w-full p-3 rounded-lg border-2 border-purple-500 bg-purple-500/20 text-purple-400 font-semibold transition-all ${
-                    shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                  }`}
+                    selectedBets.includes(bet.id) ? 'ring-2 ring-yellow-400 scale-105' : ''
+                  } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}`}
                   disabled={shouldDisable}
                 >
                   <div className="text-sm">{bet.label}</div>
                   <div className="text-xs opacity-75">{bet.payout}</div>
                 </button>
-                {!shouldDisable && (
-                  <input
-                    type="checkbox"
-                    className="absolute -top-1 -right-1 w-4 h-4"
-                    checked={selectedBets.includes(bet.id)}
-                    onChange={() => onBetToggle(bet.id)}
-                  />
-                )}
               </div>
             ))}
           </div>
@@ -229,22 +241,15 @@ export default function RouletteTable({
             {ROULETTE_BETS.columns.map((bet) => (
               <div key={bet.id} className="relative">
                 <button
+                  onClick={() => !shouldDisable && onBetToggle(bet.id)}
                   className={`w-full p-3 rounded-lg border-2 border-orange-500 bg-orange-500/20 text-orange-400 font-semibold transition-all ${
-                    shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                  }`}
+                    selectedBets.includes(bet.id) ? 'ring-2 ring-yellow-400 scale-105' : ''
+                  } ${shouldDisable ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}`}
                   disabled={shouldDisable}
                 >
                   <div className="text-sm">{bet.label}</div>
                   <div className="text-xs opacity-75">{bet.payout}</div>
                 </button>
-                {!shouldDisable && (
-                  <input
-                    type="checkbox"
-                    className="absolute -top-1 -right-1 w-4 h-4"
-                    checked={selectedBets.includes(bet.id)}
-                    onChange={() => onBetToggle(bet.id)}
-                  />
-                )}
               </div>
             ))}
           </div>

@@ -15,7 +15,7 @@ import RouletteTable from './RouletteTable'
 interface FibonacciAdvancedSessionProps {
   sessionData: any
   nextBetSuggestion: any
-  onSubmitResult: (number: number, amount?: number) => void
+  onSubmitResult: (number: number, amount?: number, selectedBets?: string[]) => void
   processing: boolean
   lastResult: number | null
   getNumberColor: (number: number) => string
