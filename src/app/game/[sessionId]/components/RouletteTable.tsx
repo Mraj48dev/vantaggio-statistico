@@ -68,39 +68,6 @@ const getNumberColor = (number: number): 'red' | 'black' | 'green' => {
   return redNumbers.includes(number) ? 'red' : 'black'
 }
 
-// Utility function per determinare se un numero vince con le puntate selezionate
-export const checkWinningBets = (number: number, selectedBets: string[]): string[] => {
-  const winners: string[] = []
-
-  selectedBets.forEach(bet => {
-    // Numeri diretti
-    if (bet.startsWith('number_')) {
-      const betNumber = parseInt(bet.replace('number_', ''))
-      if (betNumber === number) winners.push(bet)
-      return
-    }
-
-    // Even-Money bets
-    if (bet === 'red' && getNumberColor(number) === 'red') winners.push(bet)
-    if (bet === 'black' && getNumberColor(number) === 'black') winners.push(bet)
-    if (bet === 'odd' && number > 0 && number % 2 === 1) winners.push(bet)
-    if (bet === 'even' && number > 0 && number % 2 === 0) winners.push(bet)
-    if (bet === 'low' && number >= 1 && number <= 18) winners.push(bet)
-    if (bet === 'high' && number >= 19 && number <= 36) winners.push(bet)
-
-    // Dozzine
-    if (bet === 'dozen_1' && number >= 1 && number <= 12) winners.push(bet)
-    if (bet === 'dozen_2' && number >= 13 && number <= 24) winners.push(bet)
-    if (bet === 'dozen_3' && number >= 25 && number <= 36) winners.push(bet)
-
-    // Colonne
-    if (bet === 'column_1' && [1,4,7,10,13,16,19,22,25,28,31,34].includes(number)) winners.push(bet)
-    if (bet === 'column_2' && [2,5,8,11,14,17,20,23,26,29,32,35].includes(number)) winners.push(bet)
-    if (bet === 'column_3' && [3,6,9,12,15,18,21,24,27,30,33,36].includes(number)) winners.push(bet)
-  })
-
-  return winners
-}
 
 export default function RouletteTable({
   sessionData,

@@ -116,6 +116,47 @@ export class RouletteGameEngine {
   }
 
   /**
+   * Calculates bet results for a known winning number
+   */
+  calculateResultsForNumber(bets: readonly BetInput[], winningNumber: number): Result<SpinResult, RouletteGameError> {
+    // Validate all bets first
+    for (const bet of bets) {
+      const validation = this.validateBet(bet)
+      if (!validation.isSuccess) {
+        return Result.failure(validation.error)
+      }
+    }
+
+    // Validate the winning number
+    if (!this.config.numbers.includes(winningNumber)) {
+      return Result.failure(new RouletteGameError(`Invalid winning number: ${winningNumber}`))
+    }
+
+    const numberInfo = this.getNumberInfo(winningNumber)
+
+    // Calculate results for each bet
+    const betResults = bets.map(bet => this.calculateBetResult(bet, winningNumber))
+
+    // Calculate totals
+    const totalWinAmount = betResults.reduce((sum, result) => sum + result.winAmount, 0)
+    const totalNetGain = betResults.reduce((sum, result) => sum + result.netGain, 0)
+
+    const spinResult: SpinResult = {
+      winningNumber,
+      color: numberInfo.color,
+      isEven: numberInfo.isEven,
+      isLow: numberInfo.isLow,
+      dozen: numberInfo.dozen,
+      column: numberInfo.column,
+      betResults,
+      totalWinAmount,
+      totalNetGain
+    }
+
+    return Result.success(spinResult)
+  }
+
+  /**
    * Simulates a roulette spin and calculates all bet results
    */
   spin(bets: readonly BetInput[]): Result<SpinResult, RouletteGameError> {
@@ -215,13 +256,13 @@ export class RouletteGameEngine {
         return winningNumber >= 25 && winningNumber <= 36
 
       case BetType.COLUMN_1:
-        return winningNumber > 0 && (winningNumber - 1) % 3 === 0
+        return [1,4,7,10,13,16,19,22,25,28,31,34].includes(winningNumber)
 
       case BetType.COLUMN_2:
-        return winningNumber > 0 && (winningNumber - 2) % 3 === 0
+        return [2,5,8,11,14,17,20,23,26,29,32,35].includes(winningNumber)
 
       case BetType.COLUMN_3:
-        return winningNumber > 0 && (winningNumber - 3) % 3 === 0
+        return [3,6,9,12,15,18,21,24,27,30,33,36].includes(winningNumber)
 
       default:
         return false
@@ -308,9 +349,9 @@ export class RouletteGameEngine {
       number >= 25 && number <= 36 ? 3 : null
 
     const column: 1 | 2 | 3 | null =
-      number > 0 && (number - 1) % 3 === 0 ? 1 :
-      number > 0 && (number - 2) % 3 === 0 ? 2 :
-      number > 0 && (number - 3) % 3 === 0 ? 3 : null
+      [1,4,7,10,13,16,19,22,25,28,31,34].includes(number) ? 1 :
+      [2,5,8,11,14,17,20,23,26,29,32,35].includes(number) ? 2 :
+      [3,6,9,12,15,18,21,24,27,30,33,36].includes(number) ? 3 : null
 
     return {
       color,

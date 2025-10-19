@@ -16,7 +16,73 @@ import FibonacciAdvancedSession from './components/FibonacciAdvancedSession'
 import MartingaleSession from './components/MartingaleSession'
 import JamesBondSession from './components/JamesBondSession'
 import GenericSession from './components/GenericSession'
-import { checkWinningBets } from './components/RouletteTable'
+import { RouletteGameEngine, BetType, type BetInput, createEuropeanRouletteConfig } from '@/modules/games/domain/services/RouletteGameEngine'
+
+// Initialize the roulette game engine
+const rouletteConfig = createEuropeanRouletteConfig()
+const rouletteEngine = new RouletteGameEngine(rouletteConfig)
+
+// Helper function to convert UI bet names to BetType enum
+const mapUIBetToBetType = (uiBet: string): BetType | null => {
+  const betMap: Record<string, BetType> = {
+    'red': BetType.RED,
+    'black': BetType.BLACK,
+    'even': BetType.EVEN,
+    'odd': BetType.ODD,
+    'high': BetType.HIGH,
+    'low': BetType.LOW,
+    'dozen_1': BetType.DOZEN_1,
+    'dozen_2': BetType.DOZEN_2,
+    'dozen_3': BetType.DOZEN_3,
+    'column_1': BetType.COLUMN_1,
+    'column_2': BetType.COLUMN_2,
+    'column_3': BetType.COLUMN_3
+  }
+  return betMap[uiBet] || null
+}
+
+// Helper function to check if any of the selected bets won
+const checkWinningBetsWithEngine = (number: number, selectedBets: string[], betAmount: number = 1): string[] => {
+  const bets: BetInput[] = selectedBets
+    .map(uiBet => {
+      const betType = mapUIBetToBetType(uiBet)
+      if (!betType) return null
+      return { type: betType, amount: betAmount }
+    })
+    .filter((bet): bet is BetInput => bet !== null)
+
+  if (bets.length === 0) return []
+
+  const spinResult = rouletteEngine.calculateResultsForNumber(bets, number)
+  if (!spinResult.isSuccess) return []
+
+  const winningBets: string[] = []
+  spinResult.value.betResults.forEach(result => {
+    if (result.isWinning) {
+      // Convert back to UI format
+      const uiBetName = Object.entries({
+        'red': BetType.RED,
+        'black': BetType.BLACK,
+        'even': BetType.EVEN,
+        'odd': BetType.ODD,
+        'high': BetType.HIGH,
+        'low': BetType.LOW,
+        'dozen_1': BetType.DOZEN_1,
+        'dozen_2': BetType.DOZEN_2,
+        'dozen_3': BetType.DOZEN_3,
+        'column_1': BetType.COLUMN_1,
+        'column_2': BetType.COLUMN_2,
+        'column_3': BetType.COLUMN_3
+      }).find(([_, betType]) => betType === result.bet.type)?.[0]
+
+      if (uiBetName) {
+        winningBets.push(uiBetName)
+      }
+    }
+  })
+
+  return winningBets
+}
 
 interface GameSessionData {
   session: {
@@ -153,114 +219,30 @@ export default function GameSessionPage() {
       const isManualMethod = sessionData.session.config.manualBetInput === true ||
         (sessionData.session.config.manualBetInput !== false && methodId === 'fibonacci_advanced')
 
-      // SEMPRE usa le selezioni dei pulsanti della roulette table
+      // Use RouletteGameEngine for ALL win/loss determination
       if (selectedBets && selectedBets.length > 0) {
-        // Use actual roulette table selections (both manual and automatic methods)
-        const winningBets = checkWinningBets(number, selectedBets)
+        // Use selected bets from roulette table
+        const winningBets = checkWinningBetsWithEngine(number, selectedBets, currentBetAmount)
         won = winningBets.length > 0
-        console.log(`🎯 ROULETTE DEBUG - Number: ${number}`)
+        console.log(`🎯 ROULETTE ENGINE - Number: ${number}`)
         console.log(`🎯 Selected Bets: [${selectedBets.join(', ')}]`)
         console.log(`🎯 Winning Bets: [${winningBets.join(', ')}]`)
         console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
-        console.log(`🚫 USING SELECTED BETS - SKIPPING FALLBACK LOGIC`)
-
-        // Debug specifico per numero 17
-        if (number === 17) {
-          console.log(`🔍 DEBUG 17 - Dozen_2 check: ${number >= 13 && number <= 24}`)
-          console.log(`🔍 DEBUG 17 - Column_2 check: ${[2,5,8,11,14,17,20,23,26,29,32,35].includes(number)}`)
-        }
-      } else if (methodId === 'fibonacci_advanced') {
-        // For Fibonacci Advanced, get the bet target from config
+      } else {
+        // Fallback: use method's default target
         const betTarget = sessionData.session.config.betTarget || 'column_1'
-
-        switch (betTarget) {
-          case 'column_1':
-            won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
-            break
-          case 'column_2':
-            won = [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35].includes(number)
-            break
-          case 'column_3':
-            won = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36].includes(number)
-            break
-          case 'dozen_1':
-            won = number >= 1 && number <= 12
-            break
-          case 'dozen_2':
-            won = number >= 13 && number <= 24
-            break
-          case 'dozen_3':
-            won = number >= 25 && number <= 36
-            break
-        }
-      } else if (methodId === 'james_bond') {
-        // James Bond multiple bet logic - simplified to check if any bet wins
-        won = number === 0 || (number >= 13 && number <= 18) || (number >= 19 && number <= 36)
-      } else {
-        // Fallback for methods without roulette table selections
-        const betTarget = sessionData.session.config.betTarget || 'red'
-        console.log(`Fallback logic used for betTarget: ${betTarget}`)
-
-        switch (betTarget) {
-          case 'red':
-            won = getNumberColor(number) === 'red'
-            break
-          case 'black':
-            won = getNumberColor(number) === 'black'
-            break
-          case 'even':
-            won = number % 2 === 0 && number !== 0
-            break
-          case 'odd':
-            won = number % 2 !== 0
-            break
-          case 'high':
-            won = number >= 19 && number <= 36
-            break
-          case 'low':
-            won = number >= 1 && number <= 18
-            break
-          default:
-            // Column 1 fallback
-            won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
-        }
-      } else {
-        // Fallback SOLO se non ci sono selectedBets
-        console.log(`⚠️ WARNING: No selectedBets found, using old fallback logic`)
-        const betTarget = sessionData.session.config.betTarget || 'red'
-        console.log(`Fallback logic used for betTarget: ${betTarget}`)
-
-        switch (betTarget) {
-          case 'red':
-            won = getNumberColor(number) === 'red'
-            break
-          case 'black':
-            won = getNumberColor(number) === 'black'
-            break
-          case 'even':
-            won = number % 2 === 0 && number !== 0
-            break
-          case 'odd':
-            won = number % 2 !== 0
-            break
-          case 'high':
-            won = number >= 19 && number <= 36
-            break
-          case 'low':
-            won = number >= 1 && number <= 18
-            break
-          default:
-            // Column 1 fallback
-            won = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34].includes(number)
-        }
-      }
+        const fallbackBets = [betTarget]
+        const winningBets = checkWinningBetsWithEngine(number, fallbackBets, currentBetAmount)
+        won = winningBets.length > 0
+        console.log(`🎯 FALLBACK ENGINE - Number: ${number}, Target: ${betTarget}`)
+        console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
       }
 
       console.log(`\n🎲 FINAL RESULT: ${number} (${gameResult.color}) - Bet: €${currentBetAmount} - ${won ? '✅ WON' : '❌ LOST'}\n`)
 
       // Alert dettagliato
       const alertMessage = won
-        ? `✅ HAI VINTO!\nNumero: ${number}\nPuntate vincenti: ${selectedBets && selectedBets.length > 0 ? checkWinningBets(number, selectedBets).join(', ') : 'Nessuna'}`
+        ? `✅ HAI VINTO!\nNumero: ${number}\nPuntate vincenti: ${selectedBets && selectedBets.length > 0 ? checkWinningBetsWithEngine(number, selectedBets, currentBetAmount).join(', ') : 'Nessuna'}`
         : `❌ Hai perso\nNumero: ${number}\nPuntate: ${selectedBets && selectedBets.length > 0 ? selectedBets.join(', ') : 'Nessuna'}`
 
       // Update session data locally (demo simulation)
