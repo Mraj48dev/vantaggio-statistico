@@ -158,7 +158,16 @@ export default function GameSessionPage() {
         // Use actual roulette table selections (both manual and automatic methods)
         const winningBets = checkWinningBets(number, selectedBets)
         won = winningBets.length > 0
-        console.log(`Roulette table betting - Selected: [${selectedBets.join(', ')}], Winning: [${winningBets.join(', ')}]`)
+        console.log(`🎯 ROULETTE DEBUG - Number: ${number}`)
+        console.log(`🎯 Selected Bets: [${selectedBets.join(', ')}]`)
+        console.log(`🎯 Winning Bets: [${winningBets.join(', ')}]`)
+        console.log(`🎯 Result: ${won ? 'WON' : 'LOST'}`)
+
+        // Debug specifico per numero 17
+        if (number === 17) {
+          console.log(`🔍 DEBUG 17 - Dozen_2 check: ${number >= 13 && number <= 24}`)
+          console.log(`🔍 DEBUG 17 - Column_2 check: ${[2,5,8,11,14,17,20,23,26,29,32,35].includes(number)}`)
+        }
       } else if (methodId === 'fibonacci_advanced') {
         // For Fibonacci Advanced, get the bet target from config
         const betTarget = sessionData.session.config.betTarget || 'column_1'
@@ -216,7 +225,12 @@ export default function GameSessionPage() {
         }
       }
 
-      console.log(`Spun: ${number} (${gameResult.color}) - Bet amount: €${currentBetAmount} - Result: ${won ? 'WON' : 'LOST'}`)
+      console.log(`\n🎲 FINAL RESULT: ${number} (${gameResult.color}) - Bet: €${currentBetAmount} - ${won ? '✅ WON' : '❌ LOST'}\n`)
+
+      // Alert dettagliato
+      const alertMessage = won
+        ? `✅ HAI VINTO!\nNumero: ${number}\nPuntate vincenti: ${selectedBets && selectedBets.length > 0 ? checkWinningBets(number, selectedBets).join(', ') : 'Nessuna'}`
+        : `❌ Hai perso\nNumero: ${number}\nPuntate: ${selectedBets && selectedBets.length > 0 ? selectedBets.join(', ') : 'Nessuna'}`
 
       // Update session data locally (demo simulation)
       const payout = won ? currentBetAmount : -currentBetAmount
@@ -306,13 +320,8 @@ export default function GameSessionPage() {
         return updatedSessionData
       })
 
-      // Show result
-      const resultMessage = won ? 'HAI VINTO!' : 'Hai perso'
-      const nextBetInfo = sessionData.nextBetSuggestion?.amount
-        ? `Prossima puntata: €${sessionData.nextBetSuggestion.amount}`
-        : 'Continua a giocare!'
-
-      alert(`Risultato: ${number} - ${resultMessage} - ${nextBetInfo}`)
+      // Show detailed result
+      alert(alertMessage)
 
     } catch (error) {
       console.error('Error processing bet result:', error)
