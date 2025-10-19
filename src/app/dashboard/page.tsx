@@ -5,8 +5,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useGames } from '@/modules/games/infrastructure/hooks/useGames'
-import { useMethods } from '@/modules/methods/infrastructure/hooks/useMethods'
 import { MethodConfigurationModal } from '@/shared/ui/components/MethodConfigurationModal'
 
 interface MethodConfig {
@@ -32,13 +30,66 @@ export default function DashboardPage() {
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
 
-  // Use modular architecture hooks
-  const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({ activeOnly: true })
-  const { methods, loading: methodsLoading, error: methodsError, userPackage } = useMethods({
-    userId: 'demo-user',
-    gameTypeId: selectedGameId || undefined,
-    activeOnly: true
-  })
+  // EMERGENCY: Use static data to prevent infinite loops
+  const gameTypes = [{
+    id: { value: 'european_roulette' },
+    name: 'european_roulette',
+    displayName: 'Roulette Europea',
+    category: 'table',
+    config: { type: 'european', minBet: 1, maxBet: 100 },
+    isActive: true,
+    sortOrder: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    getMinBet: () => 1,
+    getMaxBet: () => 100,
+    isRouletteGame: () => true,
+    isBlackjackGame: () => false,
+    getRouletteConfig: () => ({ type: 'european', minBet: 1, maxBet: 100 }),
+    getBlackjackConfig: () => null
+  }]
+
+  const methods = [{
+    id: { value: 'fibonacci' },
+    name: 'fibonacci',
+    displayName: 'Fibonacci',
+    description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
+    explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita.',
+    category: 'progressive',
+    requiredPackage: 'free',
+    configSchema: {
+      compatibleGames: ['european_roulette'],
+      requiredFields: ['baseBet', 'stopLoss'],
+      fields: {
+        baseBet: {
+          type: 'number',
+          label: 'Puntata Base (€)',
+          min: 1,
+          max: 100,
+          default: 1
+        },
+        stopLoss: {
+          type: 'number',
+          label: 'Stop Loss (€)',
+          min: 10,
+          max: 1000,
+          default: 100
+        }
+      }
+    },
+    defaultConfig: { baseBet: 1, stopLoss: 100 },
+    algorithm: 'fibonacci',
+    isActive: true,
+    sortOrder: 1,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }]
+
+  const gamesLoading = false
+  const methodsLoading = false
+  const gamesError = null
+  const methodsError = null
+  const userPackage = 'free'
 
   // Load active sessions from localStorage on mount
   useEffect(() => {
