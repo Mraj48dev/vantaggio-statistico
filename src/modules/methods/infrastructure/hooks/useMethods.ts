@@ -30,182 +30,114 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
   const [error, setError] = useState<string | null>(null)
   const [userPackage, setUserPackage] = useState<string>('free')
   const [totalCount, setTotalCount] = useState(0)
-  const [retryCount, setRetryCount] = useState(0)
-  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false)
+  const [hasAttempted, setHasAttempted] = useState(false)
 
   const { userId = 'demo-user', gameTypeId, activeOnly = true } = options
-  const MAX_RETRIES = 1 // Solo 1 retry
-  const CIRCUIT_BREAKER_TIMEOUT = 30000 // 30 secondi
 
   const fetchMethods = async () => {
-    // Circuit breaker check
-    if (circuitBreakerOpen) {
-      console.log('Methods circuit breaker open, using immediate fallback')
-      setMethods([{
-        id: { value: 'fibonacci' },
-        name: 'fibonacci',
-        displayName: 'Fibonacci (Fallback)',
-        description: 'Metodo base Fibonacci',
-        explanation: 'Strategia progressiva sicura',
-        category: 'progressive',
-        requiredPackage: 'free',
-        configSchema: {
-          compatibleGames: ['european_roulette'],
-          requiredFields: ['baseBet'],
-          fields: {
-            baseBet: { type: 'number', label: 'Puntata', min: 1, max: 100, default: 1 }
-          }
-        },
-        defaultConfig: { baseBet: 1 },
-        algorithm: 'fibonacci',
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }] as any)
-      setUserPackage('free')
-      setTotalCount(1)
-      setLoading(false)
-      setError(null)
-      return
+    // Only attempt once
+    if (hasAttempted) return
+
+    setHasAttempted(true)
+    setLoading(true)
+    setError(null)
+
+    // Check localStorage cache first
+    const cacheKey = `methods-${userId}-${gameTypeId}-${activeOnly}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const cachedData = JSON.parse(cached)
+        setMethods(cachedData.methods || [])
+        setUserPackage(cachedData.userPackage || 'free')
+        setTotalCount(cachedData.totalCount || 0)
+        setLoading(false)
+        return
+      } catch (e) {
+        localStorage.removeItem(cacheKey)
+      }
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      // Single API attempt with 2 second timeout
+      const controller = new AbortController()
+      setTimeout(() => controller.abort(), 2000)
 
-      let methodsData: any
-
-      try {
-        // Try API call with timeout
-        const controller = new AbortController()
-        setTimeout(() => controller.abort(), 3000) // Ridotto a 3 secondi
-
-        const response = await fetch('/api/methods', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId,
-            gameTypeId,
-            activeOnly
-          }),
-          signal: controller.signal,
-          cache: 'force-cache'
-        })
-
-        if (response.ok) {
-          methodsData = await response.json()
-          setRetryCount(0) // Reset on success
-        } else {
-          throw new Error(`HTTP ${response.status}`)
-        }
-      } catch (apiError) {
-        console.warn('Methods API failed, using static fallback:', apiError)
-
-        // Increment retry count
-        const newRetryCount = retryCount + 1
-        setRetryCount(newRetryCount)
-
-        // Se troppi errori, apri circuit breaker
-        if (newRetryCount >= MAX_RETRIES) {
-          console.warn('Max retries reached for methods, opening circuit breaker')
-          setCircuitBreakerOpen(true)
-          // Chiudi circuit breaker dopo timeout
-          setTimeout(() => {
-            setCircuitBreakerOpen(false)
-            setRetryCount(0)
-          }, CIRCUIT_BREAKER_TIMEOUT)
-        }
-
-        // Static fallback data
-        methodsData = {
-          methods: [{
-            id: { value: 'fibonacci' },
-            name: 'fibonacci',
-            displayName: 'Fibonacci',
-            description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
-            explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita. Su vincita, torna indietro di 2 posizioni nella sequenza.',
-            category: 'progressive',
-            requiredPackage: 'free',
-            configSchema: {
-              compatibleGames: ['european_roulette'],
-              requiredFields: ['baseBet', 'stopLoss'],
-              fields: {
-                baseBet: {
-                  type: 'number',
-                  label: 'Puntata Base (€)',
-                  description: 'Importo iniziale della puntata',
-                  min: 1,
-                  max: 100,
-                  default: 1
-                },
-                stopLoss: {
-                  type: 'number',
-                  label: 'Stop Loss (€)',
-                  description: 'Limite massimo di perdita',
-                  min: 10,
-                  max: 1000,
-                  default: 100
-                }
-              }
-            },
-            defaultConfig: { baseBet: 1, stopLoss: 100 },
-            algorithm: 'fibonacci',
-            isActive: true,
-            sortOrder: 1,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }],
-          userPackage: 'free',
-          totalCount: 1
-        }
-      }
-
-      setMethods(methodsData.methods || [])
-      setUserPackage(methodsData.userPackage || 'free')
-      setTotalCount(methodsData.totalCount || 0)
-    } catch (err) {
-      console.error('Failed to fetch methods:', err)
-      setError(null) // Don't show error to user, just use fallback
-
-      // Final fallback
-      setMethods([{
-        id: { value: 'fibonacci' },
-        name: 'fibonacci',
-        displayName: 'Fibonacci (Fallback)',
-        description: 'Metodo base Fibonacci',
-        explanation: 'Strategia progressiva sicura',
-        category: 'progressive',
-        requiredPackage: 'free',
-        configSchema: {
-          compatibleGames: ['european_roulette'],
-          requiredFields: ['baseBet'],
-          fields: {
-            baseBet: { type: 'number', label: 'Puntata', min: 1, max: 100, default: 1 }
-          }
+      const response = await fetch('/api/methods', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        defaultConfig: { baseBet: 1 },
-        algorithm: 'fibonacci',
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }] as any)
-      setUserPackage('free')
-      setTotalCount(1)
-    } finally {
-      setLoading(false)
+        body: JSON.stringify({
+          userId,
+          gameTypeId,
+          activeOnly
+        }),
+        signal: controller.signal
+      })
+
+      if (response.ok) {
+        const methodsData = await response.json()
+
+        // Cache successful result
+        localStorage.setItem(cacheKey, JSON.stringify(methodsData))
+
+        setMethods(methodsData.methods || [])
+        setUserPackage(methodsData.userPackage || 'free')
+        setTotalCount(methodsData.totalCount || 0)
+        setLoading(false)
+        return
+      }
+    } catch (apiError) {
+      console.warn('Methods API failed, using fallback:', apiError)
     }
+
+    // Immediate fallback - no retries
+    console.log('Using immediate methods fallback data')
+    setMethods([{
+      id: { value: 'fibonacci' },
+      name: 'fibonacci',
+      displayName: 'Fibonacci',
+      description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
+      explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita.',
+      category: 'progressive',
+      requiredPackage: 'free',
+      configSchema: {
+        compatibleGames: ['european_roulette'],
+        requiredFields: ['baseBet', 'stopLoss'],
+        fields: {
+          baseBet: {
+            type: 'number',
+            label: 'Puntata Base (€)',
+            min: 1,
+            max: 100,
+            default: 1
+          },
+          stopLoss: {
+            type: 'number',
+            label: 'Stop Loss (€)',
+            min: 10,
+            max: 1000,
+            default: 100
+          }
+        }
+      },
+      defaultConfig: { baseBet: 1, stopLoss: 100 },
+      algorithm: 'fibonacci',
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }] as any)
+    setUserPackage('free')
+    setTotalCount(1)
+    setLoading(false)
+    setError(null)
   }
 
   useEffect(() => {
-    // Solo esegui se non abbiamo già dati o se è la prima chiamata
-    if (methods.length === 0 && !circuitBreakerOpen) {
-      fetchMethods()
-    }
-  }, [userId, gameTypeId, activeOnly, methods.length, circuitBreakerOpen])
+    fetchMethods()
+  }, []) // EMPTY DEPENDENCIES - only run once on mount
 
   const refreshMethods = async () => {
     await fetchMethods()

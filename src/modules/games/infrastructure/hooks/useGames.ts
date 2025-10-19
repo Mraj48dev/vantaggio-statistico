@@ -49,169 +49,108 @@ export function useGames(input: GetGameTypesUseCaseInput = {}) {
     loading: true,
     error: null
   })
-  const [retryCount, setRetryCount] = useState(0)
-  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false)
-
-  const MAX_RETRIES = 1 // Solo 1 retry, poi fallback immediato
-  const CIRCUIT_BREAKER_TIMEOUT = 30000 // 30 secondi prima di riprovare
+  const [hasAttempted, setHasAttempted] = useState(false)
 
   const loadGameTypes = useCallback(async () => {
-    // Circuit breaker: se aperto, usa subito fallback
-    if (circuitBreakerOpen) {
-      console.log('Circuit breaker open, using immediate fallback')
-      setState({
-        gameTypes: [{
-          id: { value: 'european_roulette' },
-          name: 'european_roulette',
-          displayName: 'Roulette Europea (Fallback)',
-          category: 'table',
-          config: { type: 'european', minBet: 1, maxBet: 100 },
-          isActive: true,
-          sortOrder: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          getMinBet: () => 1,
-          getMaxBet: () => 100,
-          isRouletteGame: () => true,
-          isBlackjackGame: () => false,
-          getRouletteConfig: () => ({ type: 'european', minBet: 1, maxBet: 100 }),
-          getBlackjackConfig: () => null
-        }] as any,
-        loading: false,
-        error: null
-      })
-      return
-    }
+    // Only attempt once
+    if (hasAttempted) return
 
+    setHasAttempted(true)
     setState(prev => ({ ...prev, loading: true, error: null }))
 
-    try {
-      // First try API, if fails use static fallback
-      let gameTypes: any[] = []
-
+    // Check localStorage cache first
+    const cacheKey = `games-${JSON.stringify(input)}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
       try {
-        // Build query parameters
-        const params = new URLSearchParams()
-        if (input.activeOnly) params.append('activeOnly', 'true')
-        if (input.category) params.append('category', input.category)
-
-        // Call API endpoint with timeout
-        const controller = new AbortController()
-        setTimeout(() => controller.abort(), 3000) // Ridotto a 3 secondi
-
-        const response = await fetch(`/api/games?${params.toString()}`, {
-          signal: controller.signal,
-          // Aggiungi cache-control per evitare richieste multiple
-          cache: 'force-cache'
+        const cachedData = JSON.parse(cached)
+        setState({
+          gameTypes: cachedData,
+          loading: false,
+          error: null
         })
-        const data = await response.json()
-
-        if (response.ok && data.success) {
-          gameTypes = data.data.gameTypes
-          // Reset retry count on success
-          setRetryCount(0)
-        } else {
-          throw new Error('API failed, using fallback')
-        }
-      } catch (apiError) {
-        console.warn('Games API failed, using static fallback:', apiError)
-
-        // Increment retry count
-        const newRetryCount = retryCount + 1
-        setRetryCount(newRetryCount)
-
-        // Se troppi errori, apri circuit breaker
-        if (newRetryCount >= MAX_RETRIES) {
-          console.warn('Max retries reached, opening circuit breaker')
-          setCircuitBreakerOpen(true)
-          // Chiudi circuit breaker dopo timeout
-          setTimeout(() => {
-            setCircuitBreakerOpen(false)
-            setRetryCount(0)
-          }, CIRCUIT_BREAKER_TIMEOUT)
-        }
-
-        // Static fallback data
-        gameTypes = [{
-          id: 'european_roulette',
-          name: 'european_roulette',
-          displayName: 'Roulette Europea',
-          category: 'table',
-          config: {
-            type: 'european',
-            numbers: Array.from({length: 37}, (_, i) => i),
-            minBet: 1,
-            maxBet: 100,
-            payouts: { straight: 35, column: 2 }
-          },
-          isActive: true,
-          sortOrder: 1,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          minBet: 1,
-          maxBet: 100,
-          isRouletteGame: true,
-          isBlackjackGame: false
-        }]
+        return
+      } catch (e) {
+        localStorage.removeItem(cacheKey)
       }
-
-      // Convert to domain objects
-      const domainGameTypes = gameTypes.map((gt: any) => ({
-        id: { value: gt.id },
-        name: gt.name,
-        displayName: gt.displayName,
-        category: gt.category,
-        config: gt.config,
-        isActive: gt.isActive,
-        sortOrder: gt.sortOrder,
-        createdAt: new Date(gt.createdAt),
-        updatedAt: new Date(gt.updatedAt),
-        // Add helper methods
-        getMinBet: () => gt.minBet || 1,
-        getMaxBet: () => gt.maxBet || 100,
-        isRouletteGame: () => gt.isRouletteGame || gt.category === 'table',
-        isBlackjackGame: () => gt.isBlackjackGame || false,
-        getRouletteConfig: () => gt.isRouletteGame ? gt.config : null,
-        getBlackjackConfig: () => gt.isBlackjackGame ? gt.config : null
-      }))
-
-      setState({
-        gameTypes: domainGameTypes,
-        loading: false,
-        error: null
-      })
-    } catch (error) {
-      // Final fallback
-      setState({
-        gameTypes: [{
-          id: { value: 'european_roulette' },
-          name: 'european_roulette',
-          displayName: 'Roulette Europea (Fallback)',
-          category: 'table',
-          config: { type: 'european', minBet: 1, maxBet: 100 },
-          isActive: true,
-          sortOrder: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          getMinBet: () => 1,
-          getMaxBet: () => 100,
-          isRouletteGame: () => true,
-          isBlackjackGame: () => false,
-          getRouletteConfig: () => ({ type: 'european', minBet: 1, maxBet: 100 }),
-          getBlackjackConfig: () => null
-        }] as any,
-        loading: false,
-        error: null // Don't show error, just use fallback
-      })
     }
-  }, [input, retryCount]) // Solo aggiungi retryCount come dipendenza
+
+    try {
+      // Build query parameters
+      const params = new URLSearchParams()
+      if (input.activeOnly) params.append('activeOnly', 'true')
+      if (input.category) params.append('category', input.category)
+
+      // Single API attempt with 2 second timeout
+      const controller = new AbortController()
+      setTimeout(() => controller.abort(), 2000)
+
+      const response = await fetch(`/api/games?${params.toString()}`, {
+        signal: controller.signal
+      })
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        const gameTypes = data.data.gameTypes.map((gt: any) => ({
+          id: { value: gt.id },
+          name: gt.name,
+          displayName: gt.displayName,
+          category: gt.category,
+          config: gt.config,
+          isActive: gt.isActive,
+          sortOrder: gt.sortOrder,
+          createdAt: new Date(gt.createdAt),
+          updatedAt: new Date(gt.updatedAt),
+          getMinBet: () => gt.minBet || 1,
+          getMaxBet: () => gt.maxBet || 100,
+          isRouletteGame: () => gt.isRouletteGame || gt.category === 'table',
+          isBlackjackGame: () => gt.isBlackjackGame || false,
+          getRouletteConfig: () => gt.isRouletteGame ? gt.config : null,
+          getBlackjackConfig: () => gt.isBlackjackGame ? gt.config : null
+        }))
+
+        // Cache successful result
+        localStorage.setItem(cacheKey, JSON.stringify(gameTypes))
+
+        setState({
+          gameTypes,
+          loading: false,
+          error: null
+        })
+        return
+      }
+    } catch (apiError) {
+      console.warn('Games API failed, using fallback:', apiError)
+    }
+
+    // Immediate fallback - no retries
+    console.log('Using immediate fallback data')
+    setState({
+      gameTypes: [{
+        id: { value: 'european_roulette' },
+        name: 'european_roulette',
+        displayName: 'Roulette Europea',
+        category: 'table',
+        config: { type: 'european', minBet: 1, maxBet: 100 },
+        isActive: true,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        getMinBet: () => 1,
+        getMaxBet: () => 100,
+        isRouletteGame: () => true,
+        isBlackjackGame: () => false,
+        getRouletteConfig: () => ({ type: 'european', minBet: 1, maxBet: 100 }),
+        getBlackjackConfig: () => null
+      }] as any,
+      loading: false,
+      error: null
+    })
+  }, []) // EMPTY DEPENDENCIES - only run once
 
   useEffect(() => {
-    // Solo esegui se non abbiamo già dati o se è la prima chiamata
-    if (state.gameTypes.length === 0 && !circuitBreakerOpen) {
-      loadGameTypes()
-    }
-  }, [loadGameTypes, state.gameTypes.length, circuitBreakerOpen])
+    loadGameTypes()
+  }, []) // EMPTY DEPENDENCIES - only run once on mount
 
   return {
     ...state,
