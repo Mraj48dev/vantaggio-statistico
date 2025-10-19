@@ -32,7 +32,8 @@ export default function FibonacciAdvancedSession({
   const [inputNumber, setInputNumber] = useState<string>('')
   const [inputAmount, setInputAmount] = useState<string>('')
 
-  const isManualMethod = sessionData?.session?.config?.manualBetInput === true
+  // Fibonacci Advanced is ALWAYS manual unless explicitly disabled
+  const isManualMethod = sessionData?.session?.config?.manualBetInput !== false
   const betTarget = sessionData?.session?.config?.betTarget || 'column_1'
 
   // Auto-select bet based on method target for automatic methods
@@ -130,7 +131,7 @@ export default function FibonacciAdvancedSession({
         sessionData={sessionData}
         selectedBets={selectedBets}
         onBetToggle={handleBetToggle}
-        disabled={processing || !isManualMethod}
+        disabled={processing}
         methodId="fibonacci_advanced"
       />
 
