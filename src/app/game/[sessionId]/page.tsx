@@ -43,18 +43,38 @@ const mapUIBetToBetType = (uiBet: string): BetType | null => {
 
 // Helper function to check if any of the selected bets won
 const checkWinningBetsWithEngine = (number: number, selectedBets: string[], betAmount: number = 1): string[] => {
+  console.log(`🔍 DEBUG ENGINE - Input: number=${number}, selectedBets=[${selectedBets.join(', ')}], betAmount=${betAmount}`)
+
   const bets: BetInput[] = selectedBets
     .map(uiBet => {
       const betType = mapUIBetToBetType(uiBet)
+      console.log(`🔍 DEBUG ENGINE - Mapping: "${uiBet}" -> ${betType}`)
       if (!betType) return null
       return { type: betType, amount: betAmount }
     })
     .filter((bet): bet is BetInput => bet !== null)
 
-  if (bets.length === 0) return []
+  console.log(`🔍 DEBUG ENGINE - Mapped bets:`, bets)
+
+  if (bets.length === 0) {
+    console.log(`🔍 DEBUG ENGINE - No valid bets found`)
+    return []
+  }
 
   const spinResult = rouletteEngine.calculateResultsForNumber(bets, number)
-  if (!spinResult.isSuccess) return []
+  console.log(`🔍 DEBUG ENGINE - Spin result success: ${spinResult.isSuccess}`)
+
+  if (!spinResult.isSuccess) {
+    console.log(`🔍 DEBUG ENGINE - Error:`, spinResult.error)
+    return []
+  }
+
+  console.log(`🔍 DEBUG ENGINE - Bet results:`, spinResult.value.betResults.map(r => ({
+    betType: r.bet.type,
+    amount: r.bet.amount,
+    isWinning: r.isWinning,
+    payout: r.payout
+  })))
 
   const winningBets: string[] = []
   spinResult.value.betResults.forEach(result => {
@@ -75,12 +95,15 @@ const checkWinningBetsWithEngine = (number: number, selectedBets: string[], betA
         'column_3': BetType.COLUMN_3
       }).find(([_, betType]) => betType === result.bet.type)?.[0]
 
+      console.log(`🔍 DEBUG ENGINE - Winning bet: ${result.bet.type} -> UI: ${uiBetName}`)
+
       if (uiBetName) {
         winningBets.push(uiBetName)
       }
     }
   })
 
+  console.log(`🔍 DEBUG ENGINE - Final winning bets: [${winningBets.join(', ')}]`)
   return winningBets
 }
 
