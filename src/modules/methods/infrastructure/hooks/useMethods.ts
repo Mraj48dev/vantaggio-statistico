@@ -94,43 +94,288 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
 
     // Immediate fallback - no retries
     console.log('Using immediate methods fallback data')
-    setMethods([{
-      id: { value: 'fibonacci' },
-      name: 'fibonacci',
-      displayName: 'Fibonacci',
-      description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
-      explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita.',
-      category: 'progressive',
-      requiredPackage: 'free',
-      configSchema: {
-        compatibleGames: ['european_roulette'],
-        requiredFields: ['baseBet', 'stopLoss'],
-        fields: {
-          baseBet: {
-            type: 'number',
-            label: 'Puntata Base (€)',
-            min: 1,
-            max: 100,
-            default: 1
-          },
-          stopLoss: {
-            type: 'number',
-            label: 'Stop Loss (€)',
-            min: 10,
-            max: 1000,
-            default: 100
+    setMethods([
+      {
+        id: { value: 'fibonacci' },
+        name: 'fibonacci',
+        displayName: 'Fibonacci',
+        description: 'Metodo di progressione basato sulla sequenza di Fibonacci',
+        explanation: 'Aumenta la puntata seguendo la sequenza di Fibonacci dopo ogni perdita.',
+        category: 'progressive',
+        requiredPackage: 'free',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'stopLoss'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 100,
+              default: 1
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            }
           }
-        }
+        },
+        defaultConfig: { baseBet: 1, stopLoss: 100 },
+        algorithm: 'fibonacci',
+        isActive: true,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
-      defaultConfig: { baseBet: 1, stopLoss: 100 },
-      algorithm: 'fibonacci',
-      isActive: true,
-      sortOrder: 1,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }] as any)
+      {
+        id: { value: 'martingale' },
+        name: 'martingale',
+        displayName: 'Martingale',
+        description: 'Metodo di progressione che raddoppia la puntata ad ogni perdita',
+        explanation: 'Strategia aggressiva che raddoppia la puntata dopo ogni perdita per recuperare tutte le perdite precedenti.',
+        category: 'progressive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'stopLoss', 'maxBet'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 50,
+              default: 1
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            },
+            maxBet: {
+              type: 'number',
+              label: 'Puntata Massima (€)',
+              min: 10,
+              max: 500,
+              default: 100
+            }
+          }
+        },
+        defaultConfig: { baseBet: 1, stopLoss: 100, maxBet: 100 },
+        algorithm: 'martingale',
+        isActive: true,
+        sortOrder: 2,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: { value: 'dalembert' },
+        name: 'dalembert',
+        displayName: "D'Alembert",
+        description: 'Metodo di progressione aritmetica più conservativo',
+        explanation: 'Aumenta di 1 unità dopo una perdita e diminuisce di 1 unità dopo una vincita.',
+        category: 'progressive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'stopLoss', 'unit'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 100,
+              default: 5
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            },
+            unit: {
+              type: 'number',
+              label: 'Unità di Progressione (€)',
+              min: 1,
+              max: 10,
+              default: 1
+            }
+          }
+        },
+        defaultConfig: { baseBet: 5, stopLoss: 100, unit: 1 },
+        algorithm: 'dalembert',
+        isActive: true,
+        sortOrder: 3,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: { value: 'labouchere' },
+        name: 'labouchere',
+        displayName: 'Labouchère',
+        description: 'Sistema di cancellazione basato su sequenza numerica',
+        explanation: 'Usa una sequenza di numeri e cancella quelli agli estremi ad ogni vincita.',
+        category: 'progressive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['sequence', 'stopLoss'],
+          fields: {
+            sequence: {
+              type: 'text',
+              label: 'Sequenza Iniziale',
+              default: '1,2,3,4'
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            }
+          }
+        },
+        defaultConfig: { sequence: '1,2,3,4', stopLoss: 100 },
+        algorithm: 'labouchere',
+        isActive: true,
+        sortOrder: 4,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: { value: 'paroli' },
+        name: 'paroli',
+        displayName: 'Paroli',
+        description: 'Sistema di progressione positiva',
+        explanation: 'Raddoppia la puntata dopo ogni vincita per un numero limitato di volte.',
+        category: 'positive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'maxWins', 'stopLoss'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 100,
+              default: 5
+            },
+            maxWins: {
+              type: 'number',
+              label: 'Massimo Vittorie Consecutive',
+              min: 2,
+              max: 5,
+              default: 3
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            }
+          }
+        },
+        defaultConfig: { baseBet: 5, maxWins: 3, stopLoss: 100 },
+        algorithm: 'paroli',
+        isActive: true,
+        sortOrder: 5,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: { value: 'fibonacci_advanced' },
+        name: 'fibonacci_advanced',
+        displayName: 'Fibonacci Avanzato',
+        description: 'Versione avanzata del Fibonacci con step personalizzabile',
+        explanation: 'Come il Fibonacci classico ma con possibilità di saltare step nella sequenza per gestione rischio.',
+        category: 'progressive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'stopLoss', 'stepMultiplier'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 100,
+              default: 1
+            },
+            stopLoss: {
+              type: 'number',
+              label: 'Stop Loss (€)',
+              min: 10,
+              max: 1000,
+              default: 100
+            },
+            stepMultiplier: {
+              type: 'number',
+              label: 'Moltiplicatore Step',
+              min: 1,
+              max: 3,
+              default: 1
+            }
+          }
+        },
+        defaultConfig: { baseBet: 1, stopLoss: 100, stepMultiplier: 1 },
+        algorithm: 'fibonacci_advanced',
+        isActive: true,
+        sortOrder: 6,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: { value: 'fibonacci_reverse' },
+        name: 'fibonacci_reverse',
+        displayName: 'Fibonacci Inverso',
+        description: 'Fibonacci con progressione inversa sulle vincite',
+        explanation: 'Aumenta la puntata seguendo Fibonacci dopo una vincita invece che dopo una perdita.',
+        category: 'positive',
+        requiredPackage: 'premium',
+        configSchema: {
+          compatibleGames: ['european_roulette'],
+          requiredFields: ['baseBet', 'stopWin', 'maxSequence'],
+          fields: {
+            baseBet: {
+              type: 'number',
+              label: 'Puntata Base (€)',
+              min: 1,
+              max: 100,
+              default: 1
+            },
+            stopWin: {
+              type: 'number',
+              label: 'Stop Win (€)',
+              min: 10,
+              max: 1000,
+              default: 50
+            },
+            maxSequence: {
+              type: 'number',
+              label: 'Lunghezza Max Sequenza',
+              min: 5,
+              max: 20,
+              default: 10
+            }
+          }
+        },
+        defaultConfig: { baseBet: 1, stopWin: 50, maxSequence: 10 },
+        algorithm: 'fibonacci_reverse',
+        isActive: true,
+        sortOrder: 7,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ] as any)
     setUserPackage('free')
-    setTotalCount(1)
+    setTotalCount(7)
     setLoading(false)
     setError(null)
   }
