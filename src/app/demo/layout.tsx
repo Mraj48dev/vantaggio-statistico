@@ -36,22 +36,12 @@ interface DemoLayoutProps {
  */
 export default function DemoLayout({ children }: DemoLayoutProps) {
   return (
-    <html
-      lang="it"
-      className={`${inter.variable} ${playfair.variable} ${cormorant.variable}`}
-      suppressHydrationWarning
+    <div
+      className={`min-h-screen bg-gray-900 font-sans antialiased ${inter.variable} ${playfair.variable} ${cormorant.variable}`}
     >
-      <head>
-        <meta name="theme-color" content="#ffb700" />
-      </head>
-      <body
-        className="min-h-screen bg-gray-900 font-sans antialiased"
-        suppressHydrationWarning
-      >
-        <div id="main-content" className="relative">
-          {children}
-        </div>
-      </body>
-    </html>
+      <div id="main-content" className="relative">
+        {children}
+      </div>
+    </div>
   )
 }

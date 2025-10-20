@@ -15,7 +15,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // Force SSR for all pages to avoid static generation issues
-  output: 'standalone',
+  trailingSlash: false,
   experimental: {
     outputFileTracingIncludes: {
       '/api/**/*': ['./node_modules/**/*.wasm'],
