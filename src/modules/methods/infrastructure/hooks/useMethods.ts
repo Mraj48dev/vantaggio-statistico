@@ -43,7 +43,7 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
     setError(null)
 
     // Check localStorage cache first
-    const cacheKey = `methods-${userId}-${gameTypeId}-${activeOnly}`
+    const cacheKey = `methods-v2-${userId}-${gameTypeId}-${activeOnly}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       try {
