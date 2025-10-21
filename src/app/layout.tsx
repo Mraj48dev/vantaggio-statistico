@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
+import DeploymentInfo from '@/shared/ui/components/DeploymentInfo'
 
 // import { ClerkProvider } from '@clerk/nextjs'
 // import { dark } from '@clerk/themes'
@@ -130,6 +131,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <div id="main-content" className="relative">
             {children}
           </div>
+
+          {/* Always visible deployment info widget */}
+          <DeploymentInfo />
 
           {/* Casino platform scripts and analytics will be added here */}
           {process.env.NODE_ENV === 'production' && (
