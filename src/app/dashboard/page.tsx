@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const { gameTypes, loading: gamesLoading, error: gamesError } = useGames({ activeOnly: true })
   const { methods, loading: methodsLoading, error: methodsError, userPackage } = useMethods({
     userId: 'demo-user',
-    activeOnly: true
+    activeOnly: false
   })
 
   // Load active sessions from localStorage on mount
