@@ -71,7 +71,8 @@ export function useMethods(options: UseMethodsOptions = {}): UseMethodsReturn {
         body: JSON.stringify({
           userId,
           gameTypeId,
-          activeOnly
+          activeOnly,
+          showAllMethods: true
         }),
         signal: controller.signal
       })
