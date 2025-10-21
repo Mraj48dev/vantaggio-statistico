@@ -16,6 +16,7 @@ export interface GetAvailableMethodsRequest {
   readonly userId: string
   readonly gameTypeId?: string
   readonly activeOnly?: boolean
+  readonly showAllMethods?: boolean
 }
 
 export interface GetAvailableMethodsResponse {
@@ -33,10 +34,13 @@ export class DefaultGetAvailableMethodsUseCase implements GetAvailableMethodsUse
     request: GetAvailableMethodsRequest
   ): Promise<Result<GetAvailableMethodsResponse, GetAvailableMethodsError>> {
     try {
-      const { userId, gameTypeId, activeOnly = true } = request
+      const { userId, gameTypeId, activeOnly = true, showAllMethods = false } = request
 
-      // Get methods available to user based on their package
-      const methodsResult = await this.methodRepository.findAvailableToUser(userId)
+      // Choose which methods to retrieve based on showAllMethods flag
+      const methodsResult = showAllMethods
+        ? await this.methodRepository.findAllActive()
+        : await this.methodRepository.findAvailableToUser(userId)
+
       if (!methodsResult.isSuccess) {
         return Result.failure(new GetAvailableMethodsError(
           'Failed to retrieve available methods',

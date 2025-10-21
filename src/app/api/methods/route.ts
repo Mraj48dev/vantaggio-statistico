@@ -11,7 +11,7 @@ import { MethodsContainer } from '@/modules/methods'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, gameTypeId, activeOnly = true } = body
+    const { userId, gameTypeId, activeOnly = true, showAllMethods = false } = body
 
     if (!userId) {
       return NextResponse.json(
@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
     const result = await getAvailableMethodsUseCase.execute({
       userId,
       gameTypeId,
-      activeOnly
+      activeOnly,
+      showAllMethods
     })
 
     if (!result.isSuccess) {
