@@ -17,10 +17,34 @@ export default function DeploymentInfo() {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
-    fetch('/api/build-info')
-      .then(res => res.json())
-      .then(setBuildInfo)
-      .catch(console.error)
+    const fetchAndLogBuildInfo = async () => {
+      try {
+        // Fetch build info
+        const buildRes = await fetch('/api/build-info')
+        const buildData = await buildRes.json()
+        setBuildInfo(buildData)
+
+        // Save to develog database
+        await fetch('/api/develog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            commitHash: buildData.commitHash || 'unknown',
+            buildTime: buildData.buildTime || new Date().toISOString(),
+            version: buildData.version || '1.0.0',
+            environment: buildData.environment || 'development',
+            vercelUrl: buildData.vercelUrl,
+            description: buildData.lastUpdate || 'Deploy info widget loaded'
+          })
+        })
+      } catch (error) {
+        console.error('Error fetching or logging build info:', error)
+      }
+    }
+
+    fetchAndLogBuildInfo()
   }, [])
 
   if (!buildInfo || !isVisible) return null
@@ -49,6 +73,12 @@ export default function DeploymentInfo() {
         <div className="text-green-400 text-xs">
           ✅ Premium Methods Available
         </div>
+        <a
+          href="/develog"
+          className="text-blue-400 hover:text-blue-300 text-xs mt-1 block"
+        >
+          📊 View Deploy History
+        </a>
       </div>
     </div>
   )

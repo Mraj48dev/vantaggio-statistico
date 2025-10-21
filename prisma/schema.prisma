@@ -313,6 +313,25 @@ model PlatformStats {
 }
 
 // ================================
+// DEVELOG MODULE - Development and Deployment Tracking
+// ================================
+
+model DevLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  commitHash  String    @map("commit_hash") @db.VarChar(255)
+  deployTime  DateTime  @map("deploy_time") @db.Timestamptz
+  buildTime   String    @map("build_time") @db.VarChar(255)
+  version     String    @db.VarChar(50)
+  environment String    @db.VarChar(50)
+  vercelUrl   String?   @map("vercel_url") @db.VarChar(255)
+  description String    @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("dev_logs")
+}
+
+// ================================
 // ENUMS - Type Safety for Status Fields
 // ================================
 
